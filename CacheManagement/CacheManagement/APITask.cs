@@ -12,7 +12,7 @@
         public string Endpoint { get; set; }
         public string Body { get; set; }
         public bool PublishToGrid { get; set; }
-        
+
         public string EndpointPath
         {   //Example: http://13.92.196.47/v1/paws/process-data
             get

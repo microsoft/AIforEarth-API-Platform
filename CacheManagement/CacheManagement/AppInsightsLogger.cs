@@ -5,6 +5,7 @@
     using System.Collections.Generic;
     using Microsoft.ApplicationInsights;
     using Microsoft.ApplicationInsights.DataContracts;
+    using Microsoft.ApplicationInsights.Extensibility;
 
     internal class AppInsightsLogger
     {
@@ -15,7 +16,9 @@
         private string service_version = string.Empty;
 
         private ILogger logger = null;
-        private static TelemetryClient telemetryClient = new TelemetryClient();
+
+        private static TelemetryConfiguration config = new TelemetryConfiguration { InstrumentationKey = System.Environment.GetEnvironmentVariable("APPINSIGHTS_INSTRUMENTATIONKEY", EnvironmentVariableTarget.Process) };
+        private static TelemetryClient telemetryClient = new TelemetryClient(config);
 
         public AppInsightsLogger(ILogger logger, string serviceName, string serviceVersion)
         {
@@ -33,20 +36,14 @@
 
         public void LogInformation(string message, string uri = "nil", string task_id = "nil")
         {
+
+            var formatted_msg = message +
+                "," +
+                $" service_owner={service_owner}, service_name={service_name}, service_version={service_version}, service_cluster={service_cluster}, uri={uri}, task_id={task_id}";
+
             try
             {
-                logger.LogInformation(message + ", service_owner={service_owner}, " +
-                    "service_name={service_name}, " +
-                    "service_version={service_version}, " +
-                    "service_cluster={service_cluster}, " +
-                    "uri={uri}, " +
-                    "task_id={task_id}", 
-                    service_owner, 
-                    service_name, 
-                    service_version, 
-                    service_cluster, 
-                    uri, 
-                    task_id);
+                logger.LogInformation(formatted_msg, service_owner, service_name, service_version, service_cluster, uri, task_id);
 
             }
             catch(Exception ex)
@@ -57,17 +54,19 @@
 
         public void LogRedisUpsert(string message, string upsert_type, string timestamp, string record, string uri = "nil", string task_id = "nil")
         {
+            var formatted_msg = message +
+                $", service_owner={service_owner}, " +
+                $"service_name={service_name}, " +
+                $"service_version={service_version}, " +
+                $"service_cluster={service_cluster}, " +
+                $"uri={uri}, " +
+                $"task_id={task_id}, " +
+                $"upsert_type={upsert_type}, " +
+                $"timestamp={timestamp}, " +
+                $"record={record}";
             try
             {
-                logger.LogInformation(message + ", service_owner={service_owner}, " +
-                    "service_name={service_name}, " +
-                    "service_version={service_version}, " +
-                    "service_cluster={service_cluster}, " +
-                    "uri={uri}, " +
-                    "task_id={task_id}, " +
-                    "upsert_type={upsert_type}, " +
-                    "timestamp={timestamp}, " +
-                    "record={record}",
+                logger.LogInformation(formatted_msg,
                     service_owner,
                     service_name,
                     service_version,
@@ -87,9 +86,13 @@
 
         public void LogWarning(string message, string uri = "nil", string task_id = "nil")
         {
+            var formatted_msg = message +
+                "," +
+                $"service_owner={service_owner}, service_name={service_name}, service_version={service_version}, service_cluster={service_cluster}, uri={uri}, task_id={task_id}";
+
             try
             {
-                logger.LogWarning(message + ", service_owner={service_owner}, service_name={service_name}, service_version={service_version}, service_cluster={service_cluster}, uri={uri}, task_id={task_id}", service_owner, service_name, service_version, service_cluster, uri, task_id);
+                logger.LogWarning(formatted_msg, service_owner, service_name, service_version, service_cluster, uri, task_id);
             }
             catch (Exception ex)
             {
@@ -97,15 +100,20 @@
             }
         }
 
-        public void LogError(string message, string uri = "nil", string task_id = "nil")
+        public void LogError(Exception ex, string uri = "nil", string task_id = "nil", string message = "")
         {
+            var formatted_msg = message +
+                "," +
+                $" service_owner={service_owner}, service_name={service_name}, service_version={service_version}, service_cluster={service_cluster}, uri={uri}, task_id={task_id}";
+
             try
             {
-                logger.LogError(message + ", service_owner={service_owner}, service_name={service_name}, service_version={service_version}, service_cluster={service_cluster}, uri={uri}, task_id={task_id}", service_owner, service_name, service_version, service_cluster, uri, task_id);
+                logger.LogError(ex, formatted_msg,
+                    service_owner, service_name, service_version, service_cluster, uri, task_id);
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                logger.LogError(ex.Message + ex.StackTrace.ToString());
+                logger.LogError(e, message);
             }
 
         }

@@ -26,7 +26,7 @@
             }
             catch (Exception ex)
             {
-                appInsightsLogger.LogError(ex.ToString());
+                appInsightsLogger.LogError(ex);
                 throw ex;
             }
 

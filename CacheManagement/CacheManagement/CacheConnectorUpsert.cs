@@ -1,5 +1,6 @@
-namespace AsyncCacheConnector
+namespace CacheManagement
 {
+    using AsyncCacheConnector;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Azure.EventGrid;
@@ -27,6 +28,8 @@ namespace AsyncCacheConnector
         private const string BACKEND_STATUS_RUNNING = "running";
         private const string BACKEND_STATUS_FAILED = "failed";
 
+        private const string GRID_PUBLISH_RECORD_KEY = "ORIG";
+
         [FunctionName("cache-connector-upsert")]
         public static IActionResult Run([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)]HttpRequest req, ILogger logger)
         {
@@ -46,7 +49,20 @@ namespace AsyncCacheConnector
                         if (reader.BaseStream.Length > 0)
                         {
                             body = reader.ReadToEnd();
-                            task = JsonConvert.DeserializeObject<APITask>(body);
+                            logger.LogInformation("body: " + body);
+
+                            try
+                            {
+                                appInsightsLogger.LogInformation("DeserializeObject<APITask>(body)");
+                                task = JsonConvert.DeserializeObject<APITask>(body);
+                            }
+                            catch
+                            {
+                                appInsightsLogger.LogInformation("DeserializeObject<APITask>(body[])");
+                                task = JsonConvert.DeserializeObject<APITask[]>(body)[0];
+                            }
+
+                            appInsightsLogger.LogInformation("task.PublishToGrid: " + task.PublishToGrid.ToString(), task.Endpoint, task.TaskId);
                         }
                         else
                         {
@@ -57,7 +73,7 @@ namespace AsyncCacheConnector
                 }
                 catch (Exception ex)
                 {
-                    appInsightsLogger.LogError(ex.ToString());
+                    appInsightsLogger.LogError(ex);
                     appInsightsLogger.LogRedisUpsert("Redis upsert failed.", redisOperation, task.Timestamp, body);
                     return new StatusCodeResult(500);
                 }
@@ -87,7 +103,7 @@ namespace AsyncCacheConnector
             }
             catch (Exception ex)
             {
-                appInsightsLogger.LogError(ex.ToString(), task.Endpoint, task.TaskId);
+                appInsightsLogger.LogError(ex, task.Endpoint, task.TaskId);
                 appInsightsLogger.LogRedisUpsert("Redis upsert failed.", redisOperation, task.Timestamp, task.Endpoint, task.TaskId);
                 return new StatusCodeResult(500);
             }
@@ -121,7 +137,34 @@ namespace AsyncCacheConnector
                     upsertTransaction.SortedSetRemoveAsync(string.Format("{0}_{1}", task.EndpointPath, BACKEND_STATUS_RUNNING), task.TaskId);
                 }
 
+                bool isSubsequentPipelineCall = false;
+
+                bool isPublish = false;
+                bool.TryParse(task.PublishToGrid.ToString(), out isPublish);
+
+                if (isPublish == true || task.PublishToGrid == true)
+                {
+                    if (string.IsNullOrEmpty(taskBody))
+                    {
+                        appInsightsLogger.LogInformation("It IS a pipeline call", task.Endpoint, task.TaskId);
+                        // This is a subsequent pipeline publish.
+                        isSubsequentPipelineCall = true;
+                    }
+                    else
+                    {
+                        appInsightsLogger.LogInformation("Adding body to redis: " + taskBody, task.Endpoint, task.TaskId);
+                        upsertTransaction.StringSetAsync(string.Format("{0}_{1}", task.TaskId, GRID_PUBLISH_RECORD_KEY), taskBody);
+                    }
+                }
+
                 ExecuteTransaction(upsertTransaction, task, appInsightsLogger);
+
+                if (isSubsequentPipelineCall)
+                {
+                    // We have to get the original body, since it's currently empty.
+                    taskBody = db.StringGet(string.Format("{0}_{1}", task.TaskId, GRID_PUBLISH_RECORD_KEY));
+                    appInsightsLogger.LogInformation("Stored body: " + taskBody, task.Endpoint, task.TaskId);
+                }
 
                 if (task.PublishToGrid)
                 {
@@ -146,7 +189,7 @@ namespace AsyncCacheConnector
             }
             catch (Exception ex)
             {
-                appInsightsLogger.LogError(ex.ToString(), task.Endpoint, task.TaskId);
+                appInsightsLogger.LogError(ex, task.Endpoint, task.TaskId);
                 appInsightsLogger.LogRedisUpsert("Redis upsert failed.", redisOperation, task.Timestamp, serializedTask, task.Endpoint, task.TaskId);
                 return new StatusCodeResult(500);
             }
@@ -179,7 +222,7 @@ namespace AsyncCacheConnector
             }
             catch (Exception ex)
             {
-                appInsightsLogger.LogError(ex.Message, task.Endpoint, task.TaskId);
+                appInsightsLogger.LogError(ex, task.Endpoint, task.TaskId);
                 return false;
             }
 
@@ -198,8 +241,9 @@ namespace AsyncCacheConnector
 
                 if (attempt >= 5)
                 {
-                    appInsightsLogger.LogError("Unable to complete redis transaction.", task.Endpoint, task.TaskId);
-                    throw new Exception("Unable to complete redis transaction.");
+                    var ex = new Exception("Unable to complete redis transaction.");
+                    appInsightsLogger.LogError(ex, task.Endpoint, task.TaskId);
+                    throw ex;
                 }
 
                 delaySeconds.Add(TimeSpan.FromSeconds(2));

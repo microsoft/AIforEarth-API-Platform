@@ -41,7 +41,7 @@ namespace AsyncCacheConnector
             }
             catch (Exception ex)
             {
-                appInsightsLogger.LogError(ex.ToString(), URL, uuid);
+                appInsightsLogger.LogError(ex, URL, uuid);
                 return new StatusCodeResult(500);
             }
 
@@ -64,7 +64,7 @@ namespace AsyncCacheConnector
             }
             catch (Exception ex)
             {
-                appInsightsLogger.LogError(ex.ToString(), URL, uuid);
+                appInsightsLogger.LogError(ex, URL, uuid);
                 return new StatusCodeResult(500);
             }
         }

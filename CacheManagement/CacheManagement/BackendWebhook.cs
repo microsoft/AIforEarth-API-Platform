@@ -69,13 +69,13 @@ namespace AsyncCacheConnector
                         }
                         else if (!res.IsSuccessStatusCode)
                         {
-                            appInsightsLogger.LogError($"Unable to send request to backend. Status: {res.StatusCode.ToString()}, Reason: {res.ReasonPhrase}", eventGridEvent.Subject, eventGridEvent.Id);
+                            appInsightsLogger.LogWarning($"Unable to send request to backend. Status: {res.StatusCode.ToString()}, Reason: {res.ReasonPhrase}", eventGridEvent.Subject, eventGridEvent.Id);
                             return new StatusCodeResult(500);
                         }
                     }
                     catch (Exception ex)
                     {
-                        appInsightsLogger.LogError(ex.ToString(), eventGridEvent.Subject, eventGridEvent.Id);
+                        appInsightsLogger.LogError(ex, eventGridEvent.Subject, eventGridEvent.Id);
                         return new StatusCodeResult(500);
                     }
 

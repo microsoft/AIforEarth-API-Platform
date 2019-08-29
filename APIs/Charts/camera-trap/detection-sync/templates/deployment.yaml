@@ -1,0 +1,65 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: {{ .Values.image.name }}
+  labels:
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+spec:
+  replicas: {{ .Values.replicaCount }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.image.name }}
+    spec:
+      containers:
+      - name: {{ .Chart.Name }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        command: ["/startup.sh"]
+        ports:
+        - containerPort: {{ .Values.service.internalPort }}
+          name: http
+        resources:
+{{ toYaml .Values.resources | indent 10 }}
+        env:
+        - name: CACHE_CONNECTOR_UPSERT_URI
+          value: {{ .Values.env.CACHE_CONNECTOR_UPSERT_URI | quote }}
+        - name: CURRENT_PROCESSING_UPSERT_URI
+          value: {{ .Values.env.CURRENT_PROCESSING_UPSERT_URI | quote }}
+        - name: CACHE_CONNECTOR_GET_URI
+          value: {{ .Values.env.CACHE_CONNECTOR_GET_URI | quote }}
+        - name: APPINSIGHTS_INSTRUMENTATIONKEY
+          value: {{ .Values.env.APPINSIGHTS_INSTRUMENTATIONKEY | quote }}
+        - name: APPINSIGHTS_AI4E_INSTRUMENTATIONKEY
+          value: {{ .Values.env.APPINSIGHTS_AI4E_INSTRUMENTATIONKEY | quote }}
+        - name: APPINSIGHTS_LIVEMETRICSSTREAMAUTHENTICATIONAPIKEY
+          value: {{ .Values.env.APPINSIGHTS_LIVEMETRICSSTREAMAUTHENTICATIONAPIKEY | quote }}
+        - name: LOCALAPPDATA
+          value: {{ .Values.env.LOCALAPPDATA | quote }}
+        - name: OCAGENT_TRACE_EXPORTER_ENDPOINT
+          value: {{ .Values.env.OCAGENT_TRACE_EXPORTER_ENDPOINT | quote }}
+        - name: SERVICE_OWNER
+          value: {{ .Values.env.SERVICE_OWNER | quote }}
+        - name: SERVICE_CLUSTER
+          value: {{ .Values.env.SERVICE_CLUSTER | quote }}
+        - name: SERVICE_MODEL_NAME
+          value: {{ .Values.env.SERVICE_MODEL_NAME | quote }}
+        - name: SERVICE_MODEL_FRAMEWORK
+          value: {{ .Values.env.SERVICE_MODEL_FRAMEWORK | quote }}
+        - name: SERVICE_MODEL_FRAMEOWRK_VERSION
+          value: {{ .Values.env.SERVICE_MODEL_FRAMEOWRK_VERSION | quote }}
+        - name: SERVICE_MODEL_VERSION
+          value: {{ .Values.env.SERVICE_MODEL_VERSION | quote }}
+        - name: SERVICE_NAME
+          value: {{ .Chart.Name | quote }}
+        - name: SERVICE_VERSION
+          value: {{ .Chart.Version | quote }}
+        - name: SERVICE_CONTAINER_VERSION
+          value: {{ .Values.image.tag | quote }}
+        - name: SERVICE_CONTAINER_NAME
+          value: {{ .Values.image.repository | quote }}
+        volumeMounts:
+{{ toYaml .Values.volumeMounts | indent 10 }}
+      volumes:
+{{ toYaml .Values.volumes | indent 8 }}
+      imagePullSecrets:
+      - name: {{ .Values.image.secret }}

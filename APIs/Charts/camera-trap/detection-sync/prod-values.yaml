@@ -1,0 +1,37 @@
+global:
+  registry_location: "off-cluster"
+replicaCount: 1
+image:
+  repository: <acr>.azurecr.io/camera-trap/0.1-ai4e-api-detection-sync
+  name: camera-trap-detection-sync
+  tag: 2
+  version: v1
+  pullPolicy: Always
+  secret: ai4eregistry
+service:
+  internalPort: 8024
+  type: ClusterIP
+resources:
+  limits: #NC6 = 6 cores, 1 GPU, 56G RAM (we're going to allow 2 pods per node max)
+    cpu: 5000m
+    memory: 100Gi
+    nvidia.com/gpu: 1 #cannot ask for a fraction of a GPU, must be manually verified
+  requests:
+    cpu: 2000m
+    memory: 50Gi
+env:
+  APPINSIGHTS_INSTRUMENTATIONKEY: ""
+  LOCALAPPDATA: "/app_insights_data"
+  OCAGENT_TRACE_EXPORTER_ENDPOINT: "localhost:55678"
+  SERVICE_OWNER: "AI4E_camera_trap"
+  SERVICE_MODEL_NAME: "camera-trap-detection-sync"
+  SERVICE_MODEL_FRAMEWORK: "Python"
+  SERVICE_MODEL_FRAMEOWRK_VERSION: "3.6.6"
+  SERVICE_MODEL_VERSION: "0.1.0"
+volumeMounts:
+  - name: nvidia
+    mountPath: /usr/local/nvidia
+volumes:
+  - name: nvidia
+    hostPath:
+      path: /usr/local/nvidia

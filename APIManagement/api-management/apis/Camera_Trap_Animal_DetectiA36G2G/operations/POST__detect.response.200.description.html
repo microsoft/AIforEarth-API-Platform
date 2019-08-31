@@ -1,0 +1,50 @@
+Images are successfully processed. The detection bounding boxes and their confidences will be returned in a json, in addition to annotated image files if `render` was true. Since multiple objects of different types may be returned, the response is encoded using `requests_toolbelt.multipart.encoder.MultipartEncoder`.
+
+Here is an example of how you can parse the result in Python:
+```
+import os
+import json
+from requests_toolbelt.multipart import decoder
+from PIL import Image
+
+results = decoder.MultipartDecoder.from_response(r)
+
+text_results = {}
+images = {}
+for part in results.parts:
+    # part is a BodyPart object with b'Content-Type', and b'Content-Disposition', the later includes 'name' and 'filename' info
+    headers = {}
+    for k, v in part.headers.items():
+        headers[k.decode(part.encoding)] = v.decode(part.encoding)
+    if headers.get('Content-Type', None) == 'image/jpeg':
+        c = headers.get('Content-Disposition')
+        image_name = c.split('name="')[1].split('"')[0]  # this is an HTTP string; you can parse it more elegantly using a library
+        image = Image.open(io.BytesIO(part.content))
+        
+        images[image_name] = image
+    
+    elif headers.get('Content-Type', None) == 'application/json':
+        text_result = json.loads(part.content.decode())
+        
+for img_name, img in sorted(images.items()):
+  img.save(img_name + '.jpg')
+```
+`text_result` looks like this:
+```
+{
+  'S1_D04_R6_PICT0022.JPG': [[0.011515299789607525,
+   0.11399328708648682,
+   0.9100480079650879,
+   1.0,
+   0.9953194260597229,
+   1]],
+ 'S1_D04_R6_PICT0128.JPG': [[0.5885017514228821,
+   0.019416160881519318,
+   0.6662894487380981,
+   0.16861802339553833,
+   0.8873217105865479,
+   2]],
+ 'S1_D04_R6_PICT0129.JPG': []
+}
+```
+where the keys are the unique image identifier that you specified for each image in the request body. The value is an array containing the detections above `confidence` that were found. The array is empty if no animals/persons/vehicles are detected above the confidence threshold. Each detection is an array also, `[ymin, xmin, ymax, xmax, confidence, category]`, where the first four floats are the _relative_ coordinates of the bounding box.

@@ -1,0 +1,21 @@
+{
+  "id": "/products/unlimited",
+  "name": "Unlimited",
+  "$ref-description": "api-management/products/Unlimited/product.description.html",
+  "terms": null,
+  "subscriptionRequired": true,
+  "approvalRequired": true,
+  "subscriptionsLimit": 1,
+  "state": "published",
+  "$refs-groups": [
+    "api-management/groups/Administrators/configuration.json",
+    "api-management/groups/Developers/configuration.json",
+    "api-management/groups/Guests/configuration.json"
+  ],
+  "$refs-apis": [
+    "api-management/apis/Camera_Trap_Animal_DetectiA36G2G/configuration.json",
+    "api-management/apis/Camera_Trap_Batch_Animal_D1RIJ6XN/configuration.json",
+    "api-management/apis/Task_Management__1[Current]/configuration.json"
+  ],
+  "__GitModuleVersion": 15
+}

@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: application-insights-istio-mixer-adapter
+  namespace: istio-system
+  labels:
+    app: application-insights-istio-mixer-adapter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: application-insights-istio-mixer-adapter
+  template:
+    metadata:
+      labels:
+        app: application-insights-istio-mixer-adapter
+    spec:
+      containers:
+      - name: application-insights-istio-mixer-adapter
+        image: mcr.microsoft.com/applicationinsights/istiomixeradapter:v0.2
+        ports:
+        - name: http2-in-port
+          containerPort: 6789
+        env:
+        - name: ISTIO_MIXER_PLUGIN_AI_INSTRUMENTATIONKEY
+          value: "6b243152-276d-4812-a81a-8b2ffd203a90" # instrumentation key for the Application Insights resource to send telemetry to
+        - name: ISTIO_MIXER_PLUGIN_AI_LIVE_METRICS_STREAM_AUTH_KEY
+          value: ""
+        - name: ISTIO_MIXER_PLUGIN_WATCHLIST_NAMESPACES
+          value: "" # comma-separated list of Kubernetes namespaces to monitor. Leave empty if all namespaces must be monitored
+        - name: ISTIO_MIXER_PLUGIN_WATCHLIST_NAMESPACES_IGNORED
+          value: "istio-system,kube-system" # comma-separated list of Kubernetes namespaces to ignore (has priority over ISTIO_MIXER_PLUGIN_WATCHLIST_NAMESPACES)
+        # Note: to include or exclude telemetry for an individual pod from being collected, use *appinsights/monitoring.enabled* label on that pod. This will have priority over all namespace-based configuration. Set *appinsights/monitoring.enabled* to *true* to include the pod, and to *false* to exclude it.
+        - name: ISTIO_MIXER_PLUGIN_LOG_LEVEL
+          value: Info # Log level: Info is the default, Trace for detailed tracing, Error for errors only
+        - name: ISTIO_MIXER_PLUGIN_AI_ADAPTIVE_SAMPLING_LIMIT
+          value: "1000"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: application-insights-istio-mixer-adapter-service
+  namespace: istio-system
+spec:
+  selector:
+    app: application-insights-istio-mixer-adapter
+  ports:
+  - name: http2-in-port
+    protocol: TCP
+    port: 6789
+    targetPort: 6789

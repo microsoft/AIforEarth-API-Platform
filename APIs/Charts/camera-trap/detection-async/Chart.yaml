@@ -1,0 +1,16 @@
+apiVersion: 1.0
+description: AI for Earth API Camera Trap Asynchronous service.
+name: camera-trap-detection-async
+version: 1.0.0
+keywords:
+- aiforearth
+- api
+- camera-trap
+- object-detection
+- biodiversity
+home: "https://www.microsoft.com/en-us/aiforearth"
+sources: 
+  - "https://aiforearth.visualstudio.com/Internal/_git/camera-trap-api?path=%2Fsync"
+maintainers:
+  - name: AI for Earth Engineering
+  - email: aiforearthteam@microsoft.com

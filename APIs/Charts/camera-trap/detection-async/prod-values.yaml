@@ -1,0 +1,53 @@
+global:
+  registry_location: "off-cluster"
+replicaCount: 1
+image:
+  repository: ai4eapibackendv2gpu3registry.azurecr.io/camera-trap/1.0-ai4e-api-detection-async
+  name: camera-trap-detection-async
+  tag: 1
+  version: v1
+  pullPolicy: Always
+  secret: ai4eapibackendv2gpu3registry
+service:
+  internalPort: 1212
+  type: ClusterIP
+resources:
+  limits: #NC6 = 6 cores, 1 GPU, 56G RAM (we're going to allow 2 pods per node max)
+    cpu: 5000m
+    memory: 100Gi
+    nvidia.com/gpu: 1 #cannot ask for a fraction of a GPU, must be manually verified
+  requests:
+    cpu: 2000m
+    memory: 50Gi
+    nvidia.com/gpu: 1 #cannot ask for a fraction of a GPU, must be manually verified
+env:
+  # Logging/metric keys
+  APPINSIGHTS_INSTRUMENTATIONKEY: "6b243152-276d-4812-a81a-8b2ffd203a90"                    # This key is used to ingest logs/metrics into Application Insights
+  APPINSIGHTS_LIVEMETRICSSTREAMAUTHENTICATIONAPIKEY: "" # This key is optional and allows one to view logs/metrics within the Application Insights live stream
+
+  LOCALAPPDATA: "/app_insights_data"                    # Local directory to store app insights data
+  OCAGENT_TRACE_EXPORTER_ENDPOINT: "localhost:55678"    # Trace exporter endpoint within the container for trace metrics
+
+  # The following variables are used so that you can filter logs and metrics in Application Insights
+  # This is useful especially when comparing different model versions, framework versions, etc.
+  SERVICE_OWNER: "AI4E_camera_trap"                     # Owner of the service, may also be the project name
+  SERVICE_MODEL_NAME: "camera-trap-detection-async"     # Model name
+  SERVICE_MODEL_FRAMEWORK: "Tensorflow"                 # Framework used
+  SERVICE_MODEL_FRAMEOWRK_VERSION: "1.9"                # Framework version   
+  SERVICE_MODEL_VERSION: "1.0.0"                        # Model version
+  SERVICE_CLUSTER: "ai4e-api-backend-v2-gpu-3"          # Cluster name
+
+  # These are used to specify the upsert/get URLs for the task queue
+  CACHE_CONNECTOR_UPSERT_URI: "https://ai4e-api-backend-v2-gpu-3-cache-app.azurewebsites.net/api/cache-connector-upsert?code=dnbeVLTs3HYE8NGvTxq/WD5l79OT291HQeHjSaKqzjCdSSL2ACza1w=="                        # Not needed for sync APIs
+  CACHE_CONNECTOR_GET_URI: "https://ai4e-api-backend-v2-gpu-3-cache-app.azurewebsites.net/api/cache-connector-get?code=Q7exyvz4MkGCkMP2TEa2AO3ywos6SGS0NvawHBMtYAUOi3uJu86YHQ=="                           # Not needed for sync APIs
+
+  # Request metrics track the current concurrent requests. This metric can be used to auto-scale the API.
+  DISABLE_CURRENT_REQUEST_METRIC: False
+  CURRENT_PROCESSING_UPSERT_URI: "https://ai4e-api-backend-v2-gpu-3-cache-app.azurewebsites.net/api/CurrentProcessingUpsert?code=Ej4n/G09ZrmphXvlOdtSHj0Ph84bvDUrCQoqFWiTESCAPLdEsJ76YA=="
+volumeMounts:
+  - name: nvidia
+    mountPath: /usr/local/nvidia
+volumes:
+  - name: nvidia
+    hostPath:
+      path: /usr/local/nvidia

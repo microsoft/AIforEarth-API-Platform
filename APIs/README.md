@@ -9,6 +9,7 @@ To facilitate the install, the following tools are required:
 - [Docker](https://www.docker.com/products/docker-desktop)
 - [Kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 - [Helm Client](https://helm.sh/docs/using_helm/#installing-helm)
+- [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest)
 
 ## Requirements
 To publish a container to the AI for Earth API Platform, the API must be built using one of the official AI for Earth [base containers](https://github.com/Microsoft/AIforEarth-API-Development/blob/master/Quickstart.md) and the [acceptance criteria](https://github.com/Microsoft/AIforEarth-API-Development/blob/master/AcceptanceCriteria.md) should be followed.
@@ -40,15 +41,32 @@ For all of the following steps, please reference the camera-trap example, locate
 ### Build Distributed-capable Image
 The distributed image must be built from this (APIs) directory.  The following illustrates how to build the camera-trap example.
 ```bash
-docker build . -f Projects/camera-trap/detection-sync.dockerfile -t <acr>.azurecr.io/camera-trap/1.0-ai4e-api-detection-sync:1
+docker build . -f Projects/camera-trap/detection-sync.dockerfile -t ai4eapibackendv2gpu3registry.azurecr.io/camera-trap/1.0-ai4e-api-detection-sync:4
 ```
 
 Once complete, push the new image to your container registry:
 ```bash
-docker push <acr>.azurecr.io/camera-trap/1.0-ai4e-api-detection-sync:1
+# Log into your ACR instance.
+az acr login -n <acr_name>
+
+# Push your image to your ACR.
+docker push ai4eapibackendv2gpu3registry.azurecr.io/camera-trap/1.0-ai4e-api-detection-sync:4
 ```
 
 You now have a distributed-capable image stored in your container registry that is ready to be hosted on the API Platform.
+
+### Configure API Variables
+Before deploying to the cluster, edit the chart's prod-values.yaml file.  This contains all configuration values to be used by your service. The Azure Function URLs can be retrieved by issuing the following command:
+ ```bash
+ func azure functionapp list-functions $FUNCTION_APP_NAME --show-keys
+ ```
+
+Azure Function URLs are mapped to variables according to the following table:
+| Chart Variable                | Function Name           |
+| ----------------------------- | ----------------------- |
+| CACHE_CONNECTOR_UPSERT_URI    | cache-connector-upsert  |
+| CACHE_CONNECTOR_GET_URI       | cache-connector-get     |
+| CURRENT_PROCESSING_UPSERT_URI | CurrentProcessingUpsert |
 
 ### Deploy the API to Production
 ```bash
@@ -60,8 +78,7 @@ kubectl apply -f ./Charts/camera-trap/detection-sync/autoscaler.yaml
 
 # Apply service routing.
 kubectl apply -f ./Charts/camera-trap/detection-sync/routing.yaml
+
+# Apply optional Application Insights custom scaling metric.
+kubectl apply -f ./Charts/camera-trap/detection-sync/appinsights-metric.yaml
 ```
-
-
-
-## Create an API Management Service API

@@ -33,7 +33,7 @@ When used in conjunction with the API Framework, the API Platform is capable of 
 The API Platform consists of a number of components. Some of these components are only required for certain uses.
 
 | Component     | Use           |
-| ------------- |:-------------:|
+| ------------- |---------------|
 | [AKS Cluster](Cluster/README.md)              | Core Kubernetes system |
 | [Cache Management](CacheManagement/README.md) | Async/long-running inference |
 | [API Management](APIManagement/Readme.md)     | API security, documentation, etc. |

@@ -15,7 +15,7 @@ spec:
     resource:
       name: cpu
       targetAverageUtilization: 80
-  - type: Pods
-    pods:
-      metricName: camera-trap-detection-sync-appinsights-metric-detect
-      targetAverageValue: 1
+#  - type: Pods
+#    pods:
+#      metricName: camera-trap-detection-sync-appinsights-metric-detect
+#      targetAverageValue: 1

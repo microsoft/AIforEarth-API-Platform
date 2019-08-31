@@ -57,6 +57,10 @@ spec:
           value: {{ .Values.image.tag | quote }}
         - name: SERVICE_CONTAINER_NAME
           value: {{ .Values.image.repository | quote }}
+        - name: DISABLE_CURRENT_REQUEST_METRIC
+          value: {{ .Values.image.repository | quote }}
+        - name: CURRENT_PROCESSING_UPSERT_URI
+          value: {{ .Values.image.repository | quote }}
         volumeMounts:
 {{ toYaml .Values.volumeMounts | indent 10 }}
       volumes:

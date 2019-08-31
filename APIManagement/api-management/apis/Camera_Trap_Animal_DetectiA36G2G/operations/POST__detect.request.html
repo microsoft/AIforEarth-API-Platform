@@ -1,0 +1,35 @@
+- Please send up to 8 images to be processed as files in a multipart form. 
+
+- The keys (`image_name` in the following example) in the files dictionary should be unique identifiers of the images, as the returned result will also be keyed by these.
+
+- Make sure to set the content media type correctly for each file, as only files of the accepted types will be processed. 
+
+- The accepted image types are `image/jpeg`, `image/png`, `application/octet-stream`. Please send jpeg images of usual camera trap images size (500KB - 4MB).
+
+For example, in Python:
+```
+  import requests
+  import os
+
+  num_images_to_upload = 3
+  params = {
+      'confidence': 0.8,
+      'render': True
+  }
+  
+  files = {}
+  num_images = 0
+  for i, image_name in enumerate(sorted(os.listdir(sample_input_dir))):
+      if not image_name.lower().endswith('.jpg'):
+          continue
+      
+      if num_images >= num_images_to_upload:
+          break
+      else:
+          num_images += 1
+      
+      img_path = os.path.join(sample_input_dir, image_name)
+      files[image_name] = (image_name, open(img_path, 'rb'), 'image/jpeg')
+      
+  r = requests.post(base_url + 'detect', params=params, files=files)
+```

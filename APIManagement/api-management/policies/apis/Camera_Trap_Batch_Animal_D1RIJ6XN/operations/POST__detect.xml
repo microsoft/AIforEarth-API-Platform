@@ -1,0 +1,60 @@
+<!--
+    IMPORTANT:
+    - Policy elements can appear only within the <inbound>, <outbound>, <backend> section elements.
+    - Only the <forward-request> policy element can appear within the <backend> section element.
+    - To apply a policy to the incoming request (before it is forwarded to the backend service), place a corresponding policy element within the <inbound> section element.
+    - To apply a policy to the outgoing response (before it is sent back to the caller), place a corresponding policy element within the <outbound> section element.
+    - To add a policy position the cursor at the desired insertion point and click on the round button associated with the policy.
+    - To remove a policy, delete the corresponding policy statement from the policy document.
+    - Position the <base> element within a section element to inherit all policies from the corresponding section element in the enclosing scope.
+    - Remove the <base> element to prevent inheriting policies from the corresponding section element in the enclosing scope.
+    - Policies are applied in the order of their appearance, from the top down.
+-->
+<policies>
+	<inbound>
+		<set-backend-service base-url="REPLACE_WITH_AKS_IP" />
+		<rewrite-uri template="/camera-trap/detection-async" />
+		<send-request mode="new" response-variable-name="task" ignore-error="false">
+			<set-url>@{
+                var baseUrl = "REPLACE_WITH_UPSERT_URL";
+                return baseUrl;
+            }</set-url>
+			<set-method>POST</set-method>
+			<set-body>@{
+                Uri origUri = new Uri(context.Request.Url.ToString());
+                var data = context.Request.Body != null ? context.Request.Body.As<JObject>() : new JObject();
+
+                var e = new JObject();
+                e.Add("Status", "created");
+                e.Add("BackendStatus", "created");
+                e.Add("Endpoint", origUri.AbsoluteUri);
+                e.Add("Body", data.ToString(Newtonsoft.Json.Formatting.None));
+                e.Add("PublishToGrid", true);
+                
+                return e.ToString(Newtonsoft.Json.Formatting.None);   
+            }</set-body>
+		</send-request>
+		<choose>
+			<when condition="@(context.Variables.ContainsKey("task"))">
+				<set-variable name="task_info" value="@(((IResponse)context.Variables["task"]).Body.As<JObject>())" />
+				<return-response>
+					<set-status code="200" />
+					<set-body>@(((JObject)(context.Variables["task_info"])).ToString())</set-body>
+				</return-response>
+			</when>
+			<otherwise>
+				<return-response>
+					<set-status code="500" />
+					<set-body>Task insert failed.</set-body>
+				</return-response>
+			</otherwise>
+		</choose>
+	</inbound>
+	<backend />
+	<outbound>
+		<base />
+	</outbound>
+	<on-error>
+		<base />
+	</on-error>
+</policies>

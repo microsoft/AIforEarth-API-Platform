@@ -1,0 +1,55 @@
+{
+  "id": "/apis/task-management",
+  "name": "Task Management",
+  "apiRevision": "1",
+  "$ref-description": "",
+  "subscriptionRequired": true,
+  "serviceUrl": null,
+  "path": "taskmanagement",
+  "protocols": [
+    "https"
+  ],
+  "authenticationSettings": {
+    "oAuth2": null,
+    "openid": null
+  },
+  "subscriptionKeyParameterNames": {
+    "header": "Ocp-Apim-Subscription-Key",
+    "query": "subscription-key"
+  },
+  "isCurrent": true,
+  "operations": [
+    {
+      "id": "/apis/task-management/operations/task",
+      "name": "task",
+      "method": "GET",
+      "urlTemplate": "/task/{taskId}",
+      "templateParameters": [
+        {
+          "name": "taskId",
+          "type": "",
+          "required": true,
+          "values": []
+        }
+      ],
+      "$ref-description": "",
+      "request": {
+        "queryParameters": [],
+        "headers": [],
+        "representations": []
+      },
+      "responses": [
+        {
+          "statusCode": 200,
+          "$ref-description": "",
+          "representations": [],
+          "headers": []
+        }
+      ],
+      "policies": null,
+      "$ref-policy": "api-management/policies/apis/Task_Management__1[Current]/operations/GET__task_{taskId}.xml"
+    }
+  ],
+  "apiSchemas": [],
+  "__GitModuleVersion": 15
+}

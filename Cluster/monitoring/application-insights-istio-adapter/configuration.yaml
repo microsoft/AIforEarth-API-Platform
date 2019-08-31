@@ -1,0 +1,85 @@
+# instance for template tracespan 
+apiVersion: "config.istio.io/v1alpha2"
+kind: instance
+metadata:
+ name: i1
+ namespace: istio-system
+spec:
+ template: tracespan
+ params:
+  traceId: request.headers["x-b3-traceid"] | ""
+  spanId: request.headers["x-b3-spanid"] | ""
+  parentSpanId: request.headers["x-b3-parentspanid"] | ""
+  spanName: (request.method | "") + " " + (request.scheme | "" ) + "://" + (request.host | "") + (request.path | "")
+  startTime: request.time | context.time
+  endTime: response.time | context.time
+  rewriteClientSpanId: "false"
+  spanTags:
+   source.uid: source.uid | ""
+   source.name: source.name | ""
+   source.workload.name: source.workload.name | ""
+   source.workload.namespace: source.workload.namespace | ""
+   destination.uid: destination.uid | ""
+   destination.name: destination.name | ""
+   destination.workload.name: destination.workload.name | ""
+   destination.workload.namespace: destination.workload.namespace | ""
+   source.role.name: source.labels["app"] | source.uid | ""
+   source.role.instance: source.uid | ""
+   destination.role.name: destination.labels["app"] | destination.uid | ""
+   destination.role.instance: destination.uid | ""
+   context.reporter.kind: context.reporter.kind | "inbound"
+   context.reporter.uid: context.reporter.uid | ""
+   context.protocol: context.protocol | "http"
+   connection.event: connection.event | "open"
+   source.labels.appinsights.monitoring.enabled: source.labels["appinsights/monitoring.enabled"] | ""
+   destination.labels.appinsights.monitoring.enabled: destination.labels["appinsights/monitoring.enabled"] | ""
+   source.labels.istio.isingressgateway: source.labels["istio"] == "ingressgateway"
+   request.headers.request.id: request.headers["Request-Id"] | request.headers["request-id"] | ""
+   request.headers.synthetictest.runid: request.headers["SyntheticTest-RunId"] | request.headers["synthetictest-runid"] | ""
+   request.headers.synthetictest.location: request.headers["SyntheticTest-Location"] | request.headers["synthetictest-location"] | ""
+   request.headers.request.context: request.headers["Request-Context"] | request.headers["request-context"] | ""
+   response.headers.request.context: response.headers["Request-Context"] | response.headers["request-context"] | ""
+   http.method: request.method | ""
+   http.status_code: response.code | 0
+   http.path: request.path | ""
+   http.useragent: request.useragent | ""
+   host: request.host | destination.service.host | ""
+   request.size: request.size | 0
+   request.scheme: request.scheme | ""
+   request.path: request.path | ""
+   response.size: response.size | 0
+   source.ip: source.ip | ip("0.0.0.0")
+   destination.ip: destination.ip | ip("0.0.0.0")
+   destination.port: destination.port | 0
+   destination.service.uid: destination.service.uid | ""
+   destination.service.host: destination.service.host | ""
+   destination.service.name: destination.service.name | ""
+   destination.service.namespace: destination.service.namespace | ""
+---
+
+# handler for adapter applicationinsightsadapter
+apiVersion: "config.istio.io/v1alpha2"
+kind: handler
+metadata:
+ name: h1
+ namespace: istio-system
+spec:
+ adapter: applicationinsightsadapter
+ connection:
+   address: "application-insights-istio-mixer-adapter-service.istio-system:6789"
+ params:
+   file_path: ""
+---
+
+# rule to dispatch to handler h1
+apiVersion: "config.istio.io/v1alpha2"
+kind: rule
+metadata:
+ name: r1
+ namespace: istio-system
+spec:
+ actions:
+ - handler: h1
+   instances:
+   - i1
+---

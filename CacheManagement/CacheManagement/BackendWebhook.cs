@@ -1,4 +1,8 @@
-namespace AsyncCacheConnector
+/*!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+ namespace AsyncCacheConnector
 {
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;

@@ -1,0 +1,7 @@
+apiVersion: azure.com/v1alpha2
+kind: CustomMetric
+metadata:
+  name: camera-trap-detection-sync-appinsights-metric-detect
+spec:
+  metric:
+    metricName: customMetrics//CURRENT_REQUESTS/v1/camera-trap/detection-sync/detect

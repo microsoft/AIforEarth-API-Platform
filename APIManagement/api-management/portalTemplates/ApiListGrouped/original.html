@@ -1,0 +1,47 @@
+<filter-control class="pull-right"></filter-control>
+
+<h2>
+    {% localized "ApisStrings|PageTitleApis" %}
+</h2>
+
+{% if tagGroups.size > 0 %}
+<ul class="list-unstyled">
+    {% for tagGroup in tagGroups %}
+    <li>
+        <h3>{{ tagGroup.name }}</h3>
+        <ul class="list-unstyled list-indented">
+            {% for versionGroup in tagGroup.versionGroups %}
+            <li>
+                {% if versionGroup.isVersioned %}
+                <h4>{{ versionGroup.name }}</h4>
+                
+                {% if versionGroup.description %}
+                <p>{{ versionGroup.description }}</p>
+                {% endif %}
+                
+                <ul class="list-unstyled list-indented">
+                    {% for api in versionGroup.apis  %}
+                    <li>
+                        <a href="/docs/services/{{api.id}}">{{ api.apiVersion | default: "Original" }}</a>
+                        {% if api.IsSoap %}
+                        <span class="badge badge-soap"> </span>
+                        {% endif %}
+                        {{api.description}}
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <h4><a href="/docs/services/{{versionGroup.apis[0].id}}">{{ versionGroup.apis[0].name }}</a></h4>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+    </li>
+    {% endfor %}
+</ul>
+
+<paging-control></paging-control>
+
+{% else %}
+{% localized "CommonResources|NoItemsToDisplay" %}
+{% endif %}

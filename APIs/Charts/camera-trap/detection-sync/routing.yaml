@@ -1,0 +1,28 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: camera-trap-detection-sync
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - ai4e-gateway
+  http:
+  - match:
+    - uri:
+        prefix: "/v1/camera-trap/detection-sync"
+    route:
+    - destination:
+        host: camera-trap-detection-sync.default.svc.cluster.local
+        port:
+          number: 8024
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: dr-camera-trap-detection-sync
+spec:
+  host: camera-trap-detection-sync.default.svc.cluster.local
+  trafficPolicy:
+    loadBalancer:
+      simple: ROUND_ROBIN

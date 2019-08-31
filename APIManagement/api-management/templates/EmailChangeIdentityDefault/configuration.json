@@ -1,0 +1,46 @@
+{
+  "subject": "Please confirm the new email associated with your $OrganizationName API account",
+  "$ref-body": "api-management/templates/EmailChangeIdentityDefault/body.html",
+  "title": "Email change confirmation",
+  "description": "Developers receive this email to confirm a new e-mail address after they change their existing one associated with their account.",
+  "isDefault": false,
+  "parameters": [
+    {
+      "name": "DevFirstName",
+      "title": "Developer first name",
+      "description": null
+    },
+    {
+      "name": "DevLastName",
+      "title": "Developer last name",
+      "description": null
+    },
+    {
+      "name": "OrganizationName",
+      "title": "Organization name",
+      "description": null
+    },
+    {
+      "name": "DevPortalUrl",
+      "title": "Developer portal URL",
+      "description": null
+    },
+    {
+      "name": "ConfirmUrl",
+      "title": "Developer confirmation URL",
+      "description": null
+    },
+    {
+      "name": "DevPortalHost",
+      "title": "Developer portal hostname",
+      "description": null
+    },
+    {
+      "name": "ConfirmQuery",
+      "title": "Query string part of the confirmation URL",
+      "description": null
+    }
+  ],
+  "name": "/templates/EmailChangeIdentityDefault",
+  "__GitModuleVersion": 15
+}

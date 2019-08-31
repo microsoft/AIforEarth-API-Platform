@@ -1,0 +1,123 @@
+{
+  "id": "/apis/camera-trap-animal-detection-synchronous",
+  "name": "Camera Trap Animal Detection (synchronous)",
+  "apiRevision": "1",
+  "$ref-description": "api-management/apis/Camera_Trap_Animal_DetectiA36G2G/api.description.html",
+  "subscriptionRequired": true,
+  "serviceUrl": null,
+  "path": "",
+  "protocols": [
+    "https"
+  ],
+  "authenticationSettings": {
+    "oAuth2": null,
+    "openid": null
+  },
+  "subscriptionKeyParameterNames": {
+    "header": "Ocp-Apim-Subscription-Key",
+    "query": "subscription-key"
+  },
+  "isCurrent": true,
+  "operations": [
+    {
+      "id": "/apis/camera-trap-animal-detection-synchronous/operations/post-detect",
+      "name": "Processes the input image(s) using the detection model.",
+      "method": "POST",
+      "urlTemplate": "/detect",
+      "templateParameters": [],
+      "$ref-description": "api-management/apis/Camera_Trap_Animal_DetectiA36G2G/operations/POST__detect.description.html",
+      "request": {
+        "$ref-description": "api-management/apis/Camera_Trap_Animal_DetectiA36G2G/operations/POST__detect.request.html",
+        "queryParameters": [
+          {
+            "name": "confidence",
+            "description": "The threshold above which a proposed bounding box is considered a detection. Set it to a low value such as 0.05 if you would like to receive all condidate boxes and try different thresholds. If you would like to receive the annotated images (by setting `render` to true) in the result, use a higher threshold for clearer visualizations.",
+            "type": "integer",
+            "values": []
+          },
+          {
+            "name": "render",
+            "description": "If true, the endpoint will return all input images annotated with detection bounding boxes with confidence above the `confidence` threshold, in addition to the json result.",
+            "type": "boolean",
+            "defaultValue": "false",
+            "values": []
+          }
+        ],
+        "headers": [],
+        "representations": [
+          {
+            "contentType": "multipart/form-data"
+          }
+        ]
+      },
+      "responses": [
+        {
+          "statusCode": 200,
+          "$ref-description": "api-management/apis/Camera_Trap_Animal_DetectiA36G2G/operations/POST__detect.response.200.description.html",
+          "representations": [
+            {
+              "contentType": "multipart/form-data"
+            }
+          ],
+          "headers": []
+        },
+        {
+          "statusCode": 400,
+          "$ref-description": "api-management/apis/Camera_Trap_Animal_DetectiA36G2G/operations/POST__detect.response.400.description.html",
+          "representations": [],
+          "headers": []
+        },
+        {
+          "statusCode": 413,
+          "$ref-description": "api-management/apis/Camera_Trap_Animal_DetectiA36G2G/operations/POST__detect.response.413.description.html",
+          "representations": [],
+          "headers": []
+        },
+        {
+          "statusCode": 500,
+          "$ref-description": "api-management/apis/Camera_Trap_Animal_DetectiA36G2G/operations/POST__detect.response.500.description.html",
+          "representations": [],
+          "headers": []
+        }
+      ],
+      "policies": null
+    },
+    {
+      "id": "/apis/camera-trap-animal-detection-synchronous/operations/get-model_version",
+      "name": "Returns the detector model version.",
+      "method": "GET",
+      "urlTemplate": "/model_version",
+      "templateParameters": [],
+      "$ref-description": "api-management/apis/Camera_Trap_Animal_DetectiA36G2G/operations/GET__model_version.description.html",
+      "request": {
+        "queryParameters": [],
+        "headers": [],
+        "representations": []
+      },
+      "responses": [
+        {
+          "statusCode": 200,
+          "$ref-description": "api-management/apis/Camera_Trap_Animal_DetectiA36G2G/operations/GET__model_version.response.200.description.html",
+          "representations": [
+            {
+              "contentType": "text/plain",
+              "schemaId": "5d694999e546f10c0ca9ab4b",
+              "typeName": "Model_versionGet200TextPlainResponse"
+            }
+          ],
+          "headers": []
+        }
+      ],
+      "policies": null
+    }
+  ],
+  "apiSchemas": [
+    {
+      "id": "/apis/camera-trap-animal-detection-synchronous/schemas/5d694999e546f10c0ca9ab4b",
+      "contentType": "application/vnd.oai.openapi.components+json",
+      "$ref-documentValue": "api-management/apis/Camera_Trap_Animal_DetectiA36G2G/apiSchemas/5d694999e546f10c0ca9ab4b.document"
+    }
+  ],
+  "$ref-policy": "api-management/policies/apis/Camera_Trap_Animal_DetectiA36G2G.xml",
+  "__GitModuleVersion": 15
+}

@@ -1,0 +1,28 @@
+<filter-control></filter-control>
+<ul class="nav nav-pills nav-stacked ">
+    {% for group in groups %}
+    <li>
+        <a href="#collapse-{{group.name}}" data-toggle="collapse" class="text-muted">
+            <b>{{group.name}}</b>
+            <i class="glyphicon glyphicon-menu-up pull-right"></i>
+        </a>
+    </li>
+    <li>
+        <ul class="nav nav-pills nav-stacked collapse in" role="navigation" data-offset-top="0" id="collapse-{{group.name}}">
+            {% for operation in group.menuItems %}
+            <li {% if operation.id == currentOperationId %}class="active" {% endif %}>
+                <a href="/docs/services/{{apiId}}/operations/{{operation.id}}?{% if filtering.pattern %}&pattern={{filtering.pattern}}{% endif %}{% if filtering.selectedTags %}&tags={{filtering.selectedTags}}{% endif %}{% if filtering.groupBy %}&groupBy={{filtering.groupBy}}{% endif %}">
+                    {% case operation.HttpMethod %} {% when 'GET' %}
+                    <span class="badge badge-success">{{operation.HttpMethod}}</span> {{operation.Title}} {% when 'POST' %}
+                    <span class="badge badge-warning">{{operation.HttpMethod}}</span> {{operation.Title}} {% when 'PUT' %}
+                    <span class="badge badge-info">{{operation.HttpMethod}}</span> {{operation.Title}} {% when 'DELETE' %}
+                    <span class="badge badge-danger">{{operation.HttpMethod}}</span> {{operation.Title}} {% else %}
+                    <span class="badge badge-default">{{operation.HttpMethod}}</span> {{operation.Title}} {% endcase %}
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </li>
+
+    {% endfor %}
+</ul>

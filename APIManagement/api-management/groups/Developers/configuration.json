@@ -1,0 +1,8 @@
+{
+  "name": "Developers",
+  "$ref-description": "api-management/groups/Developers/description.html",
+  "builtIn": true,
+  "type": "system",
+  "externalId": null,
+  "__GitModuleVersion": 15
+}

@@ -12,27 +12,27 @@ Please execute all commands from the Cluster directory.
 ## Configuration Variables
 To make the process smoother, set up some configuration variables.  The corresponding services must already exist).
 ```bash
-AZURE_SUBSCRIPTION_ID="74d91980-e5b4-4fd9-adb6-263b8f90ec5b"
-CACHE_MANAGEMENT_RESOURCE_GROUP_NAME="ai4e-api-backend-v2-gpu-3-cache-rg"     # Azure Resource Group
-APP_INSIGHTS_RESOURCE_NAME="ai4e-api-backend-v2-gpu-3-app-insights"           # Application Services name
-CONTAINER_REGISTRY_NAME="ai4eapibackendv2gpu3registry"                # ACR name
+AZURE_SUBSCRIPTION_ID=""
+CACHE_MANAGEMENT_RESOURCE_GROUP_NAME="ai4e-api-backend-cache-rg"     # Azure Resource Group
+APP_INSIGHTS_RESOURCE_NAME="ai4e-api-backend-app-insights"           # Application Services name
+CONTAINER_REGISTRY_NAME="ai4eapibackendregistry"                     # ACR name
 ```
 
 To make the process smoother, set up some configuration variables.  The corresponding services do not yet need to exist.
 ```bash
-AKS_RESOURCE_GROUP_NAME="ai4e-api-backend-v2-gpu-3-rg"          # Azure Resource Group Name
-AKS_CLUSTER_NAME="ai4e-api-backend-v2-gpu-3"                # AKS Cluster Name
+AKS_RESOURCE_GROUP_NAME="ai4e-api-backend-gpu-rg" # Azure Resource Group Name
+AKS_CLUSTER_NAME="ai4e-api-backend-gpu"           # AKS Cluster Name
 CLUSTER_NODE_COUNT=2                              # Number of nodes to be used for API hosting
 CLUSTER_NODE_VM_SKU="Standard_NC6s_v3"            # Azure SKU representing the type of VM to use for the nodes
-KUBERNETES_VERSION="1.13.10"                       # Kubernetes version to deploy
-DNS_NAME_PREFIX="ai4e-api-backend-v2-gpu-3"                 # Custom DNS prefix for your cluster
+KUBERNETES_VERSION="1.13.10"                      # Kubernetes version to deploy
+DNS_NAME_PREFIX="ai4e-api-backend-gpu"            # Custom DNS prefix for your cluster
 SCALE_MIN_NODE_COUNT=1                            # The minimum number of nodes to keep available
 SCALE_MAX_NODE_COUNT=3                            # The most number of nodes to auto-scale
 ISTIO_VERSION="1.2.5"                             # The version of Istio to install
 GRAFANA_ENABLED="true"                            # Enable Grafana
 KIALI_ENABLED="true"                              # Enable Kiali
-GRAFANA_PASSWORD="AI4EGeoAIDSVM1"                               # Password for Grafana
-KIALI_PASSWORD="AI4EGeoAIDSVM1"                                 # Password for Kiali
+GRAFANA_PASSWORD=""                               # Password for Grafana
+KIALI_PASSWORD=""                                 # Password for Kiali
 ```
 
 ## Resource Group

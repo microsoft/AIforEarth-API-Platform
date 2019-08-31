@@ -14,16 +14,16 @@ Please execute all commands from the CacheManagement/CacheManagement directory.
 ## Configuration Variables
 To make the process smoother, set up some configuration variables.  The corresponding services must already exist).
 ```bash
-CACHE_MANAGEMENT_RESOURCE_GROUP_NAME="ai4e-api-backend-v2-gpu-3-cache-rg"     # Azure Resource Group
-APP_INSIGHTS_RESOURCE_NAME="ai4e-api-backend-v2-gpu-3-app-insights"           # Application Services name
+CACHE_MANAGEMENT_RESOURCE_GROUP_NAME="ai4e-api-backend-rg"     # Azure Resource Group
+APP_INSIGHTS_RESOURCE_NAME="ai4e-api-backend-app-insights"     # Application Services name
 ```
 
 To make the process smoother, set up some configuration variables.  The corresponding services do not yet need to exist).
 ```bash
-AZURE_CACHE_NAME="ai4e-api-backend-v2-gpu-3-cache"                            # Azure Cache Name 
-FUNCTION_STORAGE="ai4eapibackend3storage"                    # Azure Function Storage
-FUNCTION_APP_NAME="ai4e-api-backend-v2-gpu-3-cache-app"                       # Azure Function App Name
-EVENT_GRID_TOPIC_NAME="ai4e-api-backend-v2-gpu-3-grid-topic"                  # Event Grid topic name
+AZURE_CACHE_NAME="ai4e-api-backend-cache"                       # Azure Cache Name 
+FUNCTION_STORAGE="ai4eapibackendstorage"                        # Azure Function Storage
+FUNCTION_APP_NAME="ai4e-api-backend-cache-app"                  # Azure Function App Name
+EVENT_GRID_TOPIC_NAME="ai4e-api-backend-grid-topic"             # Event Grid topic name
 ```
 
 ## Redis Cache Creation

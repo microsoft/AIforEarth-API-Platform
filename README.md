@@ -34,8 +34,10 @@ The API Platform consists of a number of components. Some of these components ar
 
 | Component     | Use           |
 | ------------- |---------------|
+| [Supporting Services](SupportingServices/README.md)              | Required Services |
 | [AKS Cluster](Cluster/README.md)              | Core Kubernetes system |
 | [Cache Management](CacheManagement/README.md) | Async/long-running inference |
+| [APIs](APIs/README.md) | API Deployment |
 | [API Management](APIManagement/Readme.md)     | API security, documentation, etc. |
 
 # Alternatives

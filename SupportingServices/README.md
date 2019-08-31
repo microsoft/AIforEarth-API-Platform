@@ -4,9 +4,9 @@ Unless alternatives are specified, the following services are required by the AP
 ## Configuration Variables
 To make the process smoother, set up some configuration variables.
 ```bash
-CACHE_MANAGEMENT_RESOURCE_GROUP_NAME="ai4e-api-backend-v2-gpu-3-cache-rg"     # Azure Resource Group
-APP_INSIGHTS_RESOURCE_NAME="ai4e-api-backend-v2-gpu-3-app-insights"                # Application Services name
-CONTAINER_REGISTRY_NAME="ai4eapibackendv2gpu3registry"                # Application Services name
+CACHE_MANAGEMENT_RESOURCE_GROUP_NAME="ai4e-api-backend-gpu-cache-rg" # Azure Resource Group
+APP_INSIGHTS_RESOURCE_NAME="ai4e-api-backend-gpu-app-insights"       # Application Services name
+CONTAINER_REGISTRY_NAME="ai4eapibackendregistry"                     # Application Services name
 ```
 
 ## Resource Group

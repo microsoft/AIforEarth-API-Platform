@@ -62,8 +62,9 @@ Before deploying to the cluster, edit the chart's prod-values.yaml file.  This c
  ```
 
 Azure Function URLs are mapped to variables according to the following table:
+
 | Chart Variable                | Function Name           |
-| ----------------------------- | ----------------------- |
+| ----------------------------- |-------------------------|
 | CACHE_CONNECTOR_UPSERT_URI    | cache-connector-upsert  |
 | CACHE_CONNECTOR_GET_URI       | cache-connector-get     |
 | CURRENT_PROCESSING_UPSERT_URI | CurrentProcessingUpsert |

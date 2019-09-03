@@ -38,7 +38,7 @@ The API Platform consists of a number of components. Some of these components ar
 | [AKS Cluster](Cluster/README.md)              | Core Kubernetes system |
 | [Cache Management](CacheManagement/README.md) | Async/long-running inference |
 | [APIs](APIs/README.md) | API Deployment |
-| [API Management](APIManagement/Readme.md)     | API security, documentation, etc. |
+| [API Management](APIManagement/README.md)     | API security, documentation, etc. |
 
 # Alternatives
 Development on the AI for Earth API Platform began in the Spring of 2018. Recently, there have been a number of improvements to the [Azure Machine Learning Service](https://docs.microsoft.com/en-us/azure/machine-learning/service/how-to-deploy-azure-kubernetes-service) and [MLOps](https://docs.microsoft.com/en-us/azure/machine-learning/service/concept-model-management-and-deployment) that have greatly bridged the inference service gaps that we had initially identified.

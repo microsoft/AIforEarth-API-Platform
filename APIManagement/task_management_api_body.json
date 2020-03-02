@@ -1,0 +1,9 @@
+{
+  "properties": {
+    "displayName": "Task Management",
+    "path": "taskmanagement",
+    "protocols": [
+      "https"
+    ]
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "properties": {
+    "displayName": "task",
+    "method": "GET",
+    "urlTemplate": "/task/{taskId}",
+    "templateParameters": [ {"name": "taskId"} ]
+  }
+}

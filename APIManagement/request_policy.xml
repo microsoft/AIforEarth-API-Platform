@@ -1,7 +1,9 @@
 <policies>
     <inbound>
+        <set-backend-service base-url=BACKEND_URL />
+        <rewrite-uri template=URL_TEMPLATE />
         <send-request mode="new" response-variable-name="task" ignore-error="false">
-            <set-url></set-url>
+            <set-url>SET_URL</set-url>
             <set-method>POST</set-method>
             <set-body>@{
                 Uri origUri = new Uri(context.Request.Url.ToString());

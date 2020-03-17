@@ -1,16 +1,16 @@
 #!/bin/bash
 
-if test -z "$INFRASTRUCTURE_RESOURCE_GROUP_NAME" 
-then
-    echo "setupenv.sh must be completed first."
-    exit 1
-fi
+source ./InfrastructureDeployment/deploy_prerequisites.sh
+source ./InfrastructureDeployment/deploy_aks.sh
+source ./InfrastructureDeployment/customize_aks.sh
+source ./InfrastructureDeployment/deploy_custom_metrics_adapter.sh
+source ./InfrastructureDeployment/deploy_cache_prerequisites.sh
+source ./InfrastructureDeployment/deploy_event_grid_topic.sh
+source ./InfrastructureDeployment/deploy_cache_manager.sh
+source ./InfrastructureDeployment/deploy_backend_webhook_function.sh
+source ./InfrastructureDeployment/deploy_request_reporter_function.sh
+source ./InfrastructureDeployment/deploy_task_process_logger_function.sh
+source ./InfrastructureDeployment/deploy_event_grid_subscription.sh
+source ./InfrastructureDeployment/deploy_api_management.sh
 
-source ./deploy_prerequisites.sh
-source ./deploy_aks.sh
-source ./customize_aks.sh
-source ./deploy_custom_metrics_adapter.sh
-source ./deploy_task_routing.sh
-source ./deploy_cache_manager.sh
-source ./deploy_supporting_functions.sh
-source ./deploy_api_management.sh
+echo "API Platform deployment complete"

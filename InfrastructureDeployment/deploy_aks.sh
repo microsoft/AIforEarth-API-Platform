@@ -8,29 +8,78 @@ az group create --name $AKS_RESOURCE_GROUP_NAME --location $INFRASTRUCTURE_LOCAT
 if [ $? -ne 0 ]
 then
     echo "Unable to create $AKS_RESOURCE_GROUP_NAME Resource Group for AKS."
+    echo "deploy_aks.sh failed"
     exit $?
 fi
 
 # Create service principal for use with AKS
-echo "Creating service principal"
+echo "Creating service principal."
+sp_data=$(az ad sp create-for-rbac --skip-assignment -n http://$AKS_CLUSTER_NAME-sp)
+if [ $? -ne 0 ]
+then
+    echo "Unable to create $AKS_CLUSTER_NAME-sp service principal for AKS."
+    echo "deploy_aks.sh failed"
+    exit $?
+fi
 
-sp_data=$(az ad sp create-for-rbac --skip-assignment)
+echo "-----------------------------------------------------------"
+echo "SERVICE PRINCIPAL DETAILS - SAVE!"
+echo $sp_data
+echo "-----------------------------------------------------------"
+read -p "Press enter to continue"
+
 appId=$(echo $sp_data | jq '.appId' | sed -e 's/^"//' -e 's/"$//')
 password=$(echo $sp_data | jq '.password' | sed -e 's/^"//' -e 's/"$//')
 
+sp_created=$(az ad sp list --spn http://$AKS_CLUSTER_NAME-sp)
+sp_created_len=${#sp_created}
+while [ $sp_created_len -le 2 ]
+do
+    echo $sp_created_len
+    echo "Service principal is not yet created. Waiting for 10 seconds."
+    sleep 10
+    sp_created=$(az ad sp list --spn http://$AKS_CLUSTER_NAME-sp)
+    sp_created_len=${#sp_created}
+done
+
+# Give AKS' service principal pull rights to the container registry
+echo "Granting AKS ACR pull rights."
+acr_id=$(az acr show --name $CONTAINER_REGISTRY_NAME --query id --output tsv)
+
+az role assignment create --assignee $appId --scope $acr_id --role AcrPull
+iteration=1
+while [ $? -ne 0 ]
+do
+    if [ $iteration -ge 10 ]
+    then
+        echo "Unable to grant AKS ACR pull rights."
+        echo "deploy_aks.sh failed"
+        exit $?
+    fi
+
+    echo "Unable to grant AKS ACR pull rights. Retrying in 10 seconds."
+    iteration=$(($iteration+1))
+    echo "Try $iteration of 10"
+    sleep 10
+    az role assignment create --assignee $appId --scope $acr_id --role AcrPull
+done
+
 # The service principal can take up to 4 minutes to propagate
-echo "The service principal can take up to 5 minutes to propagate... sleeping."
-sleep 300
+#echo "The service principal can take up to 4 minutes to propagate... sleeping."
+#sleep 240
 
 # Create the cluster.
 if [ $CLUSTER_GPU_NODE_COUNT -gt 0 ] && [ $CLUSTER_CPU_NODE_COUNT -gt 0 ]
 then
     echo "Creating AKS cluster."
     az aks create --resource-group $AKS_RESOURCE_GROUP_NAME --name $AKS_CLUSTER_NAME --node-count $CLUSTER_CPU_NODE_COUNT --node-vm-size $CLUSTER_CPU_NODE_VM_SKU --kubernetes-version $KUBERNETES_VERSION --dns-name-prefix $DNS_NAME_PREFIX --service-principal $appId --client-secret $password --generate-ssh-keys --enable-cluster-autoscaler --min-count $CPU_SCALE_MIN_NODE_COUNT --max-count $CPU_SCALE_MAX_NODE_COUNT --enable-addons monitoring --subscription $AZURE_SUBSCRIPTION_ID
+    #az aks create --resource-group $AKS_RESOURCE_GROUP_NAME --name $AKS_CLUSTER_NAME --node-count $CLUSTER_CPU_NODE_COUNT --node-vm-size $CLUSTER_CPU_NODE_VM_SKU --kubernetes-version $KUBERNETES_VERSION --dns-name-prefix $DNS_NAME_PREFIX --generate-ssh-keys --enable-cluster-autoscaler --min-count $CPU_SCALE_MIN_NODE_COUNT --max-count $CPU_SCALE_MAX_NODE_COUNT --enable-addons monitoring --subscription $AZURE_SUBSCRIPTION_ID
+
 
     if [ $? -ne 0 ]
     then
         echo "Unable to create $AKS_CLUSTER_NAME AKS cluster."
+        echo "deploy_aks.sh failed"
         exit $?
     fi
 
@@ -45,6 +94,7 @@ then
         if [ $? -ne 0 ]
         then
             echo "Unable to create GPU node pool in the $AKS_CLUSTER_NAME AKS cluster."
+            echo "deploy_aks.sh failed"
             exit $?
         fi
     fi
@@ -54,6 +104,7 @@ then
     if [ $? -ne 0 ]
     then
         echo "Waiting for $AKS_CLUSTER_NAME AKS cluster failed."
+        echo "deploy_aks.sh failed"
         exit $?
     fi
 
@@ -64,6 +115,7 @@ then
         if [ $? -ne 0 ]
         then
             echo "Unable to create $AKS_CLUSTER_NAME AKS cluster."
+            echo "deploy_aks.sh failed"
             exit $?
         fi
 
@@ -71,6 +123,7 @@ then
         if [ $? -ne 0 ]
         then
             echo "Waiting for $AKS_CLUSTER_NAME AKS cluster failed."
+            echo "deploy_aks.sh failed"
             exit $?
         fi
 else
@@ -79,6 +132,7 @@ else
         if [ $? -ne 0 ]
         then
             echo "Unable to create $AKS_CLUSTER_NAME AKS cluster."
+            echo "deploy_aks.sh failed"
             exit $?
         fi
 
@@ -86,6 +140,7 @@ else
         if [ $? -ne 0 ]
         then
             echo "Waiting for $AKS_CLUSTER_NAME AKS cluster failed."
+            echo "deploy_aks.sh failed"
             exit $?
         fi
 fi
@@ -95,6 +150,7 @@ az aks get-credentials --resource-group $AKS_RESOURCE_GROUP_NAME --name $AKS_CLU
 if [ $? -ne 0 ]
 then
     echo "Unable to get credentials for $AKS_CLUSTER_NAME AKS cluster."
+    echo "deploy_aks.sh failed"
     exit $?
 fi
 
@@ -107,6 +163,7 @@ then
     if [ $? -ne 0 ]
     then
         echo "Could not apply the NVidia device plugin for the $AKS_CLUSTER_NAME AKS cluster."
+        echo "deploy_aks.sh failed"
         exit $?
     fi
 fi

@@ -1,5 +1,3 @@
-import argparse
-import xml.etree.ElementTree as xml
 import os
 import json
 
@@ -12,30 +10,16 @@ def customize_task_management_policy(get_fun_url):
     with open('customized_task_management_policy.json', 'w') as outfile:
         json.dump(policy_struct, outfile)
 
-def customize_api_policy(upsert_fun_url):
-    taskmanagement_set_url_value='''
-    @{
-        var baseUrl = "{0}";
-        return baseUrl;
-    }
-    '''.format(upsert_fun_url)
+def customize_async_api_policy(ingress_ip, url_template, upsert_fun_url):
 
-    tree = ET.ElementTree(file='./APIManagement/request_policy.xml')
-    root = tree.getroot()
+    with open('./APIManagement/request_policy.xml') as request_policy:
+        url_string = request_policy.read(-1).replace('BACKEND_URL', '\"' + ingress_ip + '\"')
+        url_string = url_string.replace('URL_TEMPLATE', '\"' + url_template + '\"')
+        url_string = url_string.replace('SET_URL', upsert_fun_url)
 
-    for set_url in root.iter("set-url"):
-        set_url.text = taskmanagement_set_url_value
+        policy_struct = { 'properties' : { 'format': 'rawxml', 'value': url_string } }
 
-    tree = ET.ElementTree(root)
-    with open("complete_request_policy.xml", "w") as f:
-        tree.write(f)
-
-    with open('complete_request_policy.xml', 'r') as xml_file:
-        xml_string = xml_file.read()
-
-        policy_struct = { 'properties' : { 'format': 'rawxml', 'value': xml_string } }
-
-        with open('customized_api_policy.json', 'w') as outfile:
+        with open('customized_async_api_policy.json', 'w') as outfile:
             json.dump(policy_struct, outfile)
 
 def customize_backend_policy(cluster_url):

@@ -11,6 +11,7 @@ then
     if [ $? -ne 0 ]
     then
         echo "Could not apply the Application Insights Custom Metrics Adapter."
+        echo "deploy_custom_metrics_adapter.sh failed"
         exit $?
     fi
 
@@ -19,6 +20,7 @@ then
     if [ $? -ne 0 ]
     then
         echo "Could not create the service principal and secret for $SERVICE_PRINCIPAL_METRIC_ADAPTER_NAME."
+        echo "deploy_custom_metrics_adapter.sh failed"
         exit $?
     fi
 
@@ -27,6 +29,7 @@ then
     if [ $? -ne 0 ]
     then
         echo "Could not get the app id for $SERVICE_PRINCIPAL_METRIC_ADAPTER_NAME."
+        echo "deploy_custom_metrics_adapter.sh failed"
         exit $?
     fi
 
@@ -34,14 +37,16 @@ then
     if [ $? -ne 0 ]
     then
         echo "Could not get the tenant id for $SERVICE_PRINCIPAL_METRIC_ADAPTER_NAME."
+        echo "deploy_custom_metrics_adapter.sh failed"
         exit $?
     fi
 
-    # Use values from service principle created above to create secret.
+    # Use values from service principal created above to create secret.
     kubectl create secret generic azure-k8s-metrics-adapter -n custom-metrics --from-literal=azure-tenant-id=$tenant_id --from-literal=azure-client-id=$app_id --from-literal=azure-client-secret=$sp_password
     if [ $? -ne 0 ]
     then
         echo "Could not create the secret required for teh custom metrics adapter."
+        echo "deploy_custom_metrics_adapter.sh failed"
         exit $?
     fi
 fi

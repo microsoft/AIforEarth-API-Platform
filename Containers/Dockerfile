@@ -1,5 +1,5 @@
 ARG SERVICE_IMAGE_BASE=mcr.microsoft.com/aiforearth/base-py:latest
-FROM SERVICE_IMAGE_BASE
+FROM ${SERVICE_IMAGE_BASE}
 
 # Replace the local libraries with the distributed libraries required for production use.
 COPY ./base-py/task_management /ai4e_api_tools/task_management

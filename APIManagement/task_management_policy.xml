@@ -1,0 +1,18 @@
+<policies>
+    <inbound>
+        <send-request response-variable-name="context.Response" ignore-error="false">
+            <set-url></set-url>
+            <set-method>GET</set-method>
+        </send-request>
+        <return-response response-variable-name="context.Response" />
+    </inbound>
+    <backend>
+        <base />
+    </backend>
+    <outbound>
+        <base />
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>

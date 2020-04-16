@@ -1,0 +1,13 @@
+{
+  "properties": {
+    "publisherEmail": "apim@autorestsdk.com",
+    "publisherName": "autorestsdk"
+  },
+  "sku": {
+    "name": "Consumption"
+  },
+  "identity": {
+    "type": "SystemAssigned"
+  },
+  "location": "East US"
+}

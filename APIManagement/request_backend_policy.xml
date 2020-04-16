@@ -1,0 +1,16 @@
+<policies>
+    <inbound>
+        <set-backend-service base-url="" />
+        <rewrite-uri template="" />
+        <base />
+    </inbound>
+    <backend>
+        <base />
+    </backend>
+    <outbound>
+        <base />
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>

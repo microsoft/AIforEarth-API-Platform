@@ -5,7 +5,7 @@ After developing an algorithm or machine learning model, researchers face the pr
 1. [AI for Earth API Framework](#AI-for-Earth-API-Framework) - Build images required to fully take advantage of the platform's capabilities.
 2. [AI for Earth API Platform](#AI-for-Earth-API-Platform) - Overview and features.
 3. [Platform Elements and Costs](#Platform-Elements-and-Costs)
-4. [Platform Deployment]
+4. [Platform Deployment](#Platform-Deployment)
 6. [Platform Alternatives](#Alternatives)
 7. [Contributions](#Contributing)
 

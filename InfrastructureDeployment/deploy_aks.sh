@@ -64,7 +64,7 @@ do
     az role assignment create --assignee $appId --scope $acr_id --role AcrPull
 done
 
-# The service principal can take up to 4 minutes to propagate
+# The service principal can take up to 4 minutes to propagate.  Comment out the sleep, if needed.
 #echo "The service principal can take up to 4 minutes to propagate... sleeping."
 #sleep 240
 
@@ -73,8 +73,6 @@ if [ $CLUSTER_GPU_NODE_COUNT -gt 0 ] && [ $CLUSTER_CPU_NODE_COUNT -gt 0 ]
 then
     echo "Creating AKS cluster."
     az aks create --resource-group $AKS_RESOURCE_GROUP_NAME --name $AKS_CLUSTER_NAME --node-count $CLUSTER_CPU_NODE_COUNT --node-vm-size $CLUSTER_CPU_NODE_VM_SKU --kubernetes-version $KUBERNETES_VERSION --dns-name-prefix $DNS_NAME_PREFIX --service-principal $appId --client-secret $password --generate-ssh-keys --enable-cluster-autoscaler --min-count $CPU_SCALE_MIN_NODE_COUNT --max-count $CPU_SCALE_MAX_NODE_COUNT --enable-addons monitoring --subscription $AZURE_SUBSCRIPTION_ID
-    #az aks create --resource-group $AKS_RESOURCE_GROUP_NAME --name $AKS_CLUSTER_NAME --node-count $CLUSTER_CPU_NODE_COUNT --node-vm-size $CLUSTER_CPU_NODE_VM_SKU --kubernetes-version $KUBERNETES_VERSION --dns-name-prefix $DNS_NAME_PREFIX --generate-ssh-keys --enable-cluster-autoscaler --min-count $CPU_SCALE_MIN_NODE_COUNT --max-count $CPU_SCALE_MAX_NODE_COUNT --enable-addons monitoring --subscription $AZURE_SUBSCRIPTION_ID
-
 
     if [ $? -ne 0 ]
     then
@@ -111,7 +109,8 @@ then
 elif [ $CLUSTER_CPU_NODE_COUNT -gt 0 ]
 then
         echo "Creating AKS cluster with a single CPU node pool."
-        az aks create --resource-group $AKS_RESOURCE_GROUP_NAME --name $AKS_CLUSTER_NAME --vm-set-type VirtualMachineScaleSets --node-count $CLUSTER_CPU_NODE_COUNT --node-vm-size $CLUSTER_CPU_NODE_VM_SKU --kubernetes-version $KUBERNETES_VERSION --dns-name-prefix $DNS_NAME_PREFIX --generate-ssh-keys --enable-cluster-autoscaler --min-count $CPU_SCALE_MIN_NODE_COUNT --max-count $CPU_SCALE_MAX_NODE_COUNT --enable-addons monitoring
+        az aks create --resource-group $AKS_RESOURCE_GROUP_NAME --name $AKS_CLUSTER_NAME --node-count $CLUSTER_CPU_NODE_COUNT --node-vm-size $CLUSTER_CPU_NODE_VM_SKU --kubernetes-version $KUBERNETES_VERSION --dns-name-prefix $DNS_NAME_PREFIX --service-principal $appId --client-secret $password --generate-ssh-keys --enable-cluster-autoscaler --min-count $CPU_SCALE_MIN_NODE_COUNT --max-count $CPU_SCALE_MAX_NODE_COUNT --enable-addons monitoring --subscription $AZURE_SUBSCRIPTION_ID
+
         if [ $? -ne 0 ]
         then
             echo "Unable to create $AKS_CLUSTER_NAME AKS cluster."
@@ -128,7 +127,7 @@ then
         fi
 else
         echo "Creating AKS cluster with a single GPU node pool."
-        az aks create --resource-group $AKS_RESOURCE_GROUP_NAME --name $AKS_CLUSTER_NAME --vm-set-type VirtualMachineScaleSets --node-count $CLUSTER_GPU_NODE_COUNT --node-vm-size $CLUSTER_GPU_NODE_VM_SKU --kubernetes-version $KUBERNETES_VERSION --dns-name-prefix $DNS_NAME_PREFIX --generate-ssh-keys --enable-cluster-autoscaler --min-count $GPU_SCALE_MIN_NODE_COUNT --max-count $GPU_SCALE_MAX_NODE_COUNT --enable-addons monitoring
+        az aks create --resource-group $AKS_RESOURCE_GROUP_NAME --name $AKS_CLUSTER_NAME --node-count $CLUSTER_GPU_NODE_COUNT --node-vm-size $CLUSTER_GPU_NODE_VM_SKU --kubernetes-version $KUBERNETES_VERSION --dns-name-prefix $DNS_NAME_PREFIX --service-principal $appId --client-secret $password --generate-ssh-keys --enable-cluster-autoscaler --min-count $GPU_SCALE_MIN_NODE_COUNT --max-count $GPU_SCALE_MAX_NODE_COUNT --enable-addons monitoring --subscription $AZURE_SUBSCRIPTION_ID
         if [ $? -ne 0 ]
         then
             echo "Unable to create $AKS_CLUSTER_NAME AKS cluster."

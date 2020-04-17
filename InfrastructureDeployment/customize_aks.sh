@@ -86,7 +86,7 @@ then
     done
 fi
 
-# Create ACR role.
+# Create ACR role.  This lets AKS access the container registry that holds the container images.
 echo "Creating ACR role."
 client_id=$(az aks show --resource-group $AKS_RESOURCE_GROUP_NAME --name $AKS_CLUSTER_NAME --query "servicePrincipalProfile.clientId" --output tsv)
 if [ $? -ne 0 ]

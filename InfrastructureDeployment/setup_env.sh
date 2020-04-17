@@ -27,7 +27,7 @@ KUBERNETES_VERSION="1.14.8"                                          # Kubernete
 DNS_NAME_PREFIX="-api-backend"                            # Custom DNS prefix for your cluster
 
 CLUSTER_GPU_NODE_COUNT=1                                             # Number of GPU nodes to be used for API hosting
-CLUSTER_GPU_NODE_VM_SKU="Standard_NC6s_v3"                           # Azure GPU SKU representing the type of VM to use for the nodes
+CLUSTER_GPU_NODE_VM_SKU="Standard_NC6"                               # Azure GPU SKU representing the type of VM to use for the nodes
 GPU_SCALE_MIN_NODE_COUNT=1                                           # The minimum number of GPU nodes to keep available
 GPU_SCALE_MAX_NODE_COUNT=3                                           # The most number of GPU nodes to auto-scale
 CLUSTER_CPU_NODE_COUNT=2                                             # Number of CPU nodes to be used for API hosting

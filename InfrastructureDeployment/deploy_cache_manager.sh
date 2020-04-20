@@ -6,6 +6,7 @@ echo "Creating the Azure Function Apps."
 if "$DEPLOY_CACHE_MANAGER_FUNCTION_APP" = "true"
 then
     echo "Creating the cache manager Azure Function App."
+    echo "az functionapp create --name $CACHE_MANAGER_FUNCTION_APP_NAME --storage-account $FUNCTION_STORAGE_NAME --resource-group $INFRASTRUCTURE_RESOURCE_GROUP_NAME --plan $FUNCTION_APP_NAME-plan --deployment-container-image-name $CACHE_MANAGER_IMAGE --app-insights $APP_INSIGHTS_RESOURCE_NAME --docker-registry-server-user $FUNCTION_IMAGE_DOCKER_USER_NAME --docker-registry-server-password $FUNCTION_IMAGE_DOCKER_USER_PASSWORD"
     az functionapp create --name $CACHE_MANAGER_FUNCTION_APP_NAME --storage-account $FUNCTION_STORAGE_NAME --resource-group $INFRASTRUCTURE_RESOURCE_GROUP_NAME --plan $FUNCTION_APP_NAME-plan --deployment-container-image-name $CACHE_MANAGER_IMAGE --app-insights $APP_INSIGHTS_RESOURCE_NAME --docker-registry-server-user $FUNCTION_IMAGE_DOCKER_USER_NAME --docker-registry-server-password $FUNCTION_IMAGE_DOCKER_USER_PASSWORD
     if [ $? -ne 0 ]
     then

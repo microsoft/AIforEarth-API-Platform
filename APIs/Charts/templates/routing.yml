@@ -1,0 +1,28 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: service-name
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - istio-gateway-name
+  http:
+  - match:
+    - uri:
+        prefix: ""
+    route:
+    - destination:
+        host: service-name.default.svc.cluster.local
+        port:
+          number: 8021
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: dr-service-name
+spec:
+  host: service-name.default.svc.cluster.local
+  trafficPolicy:
+    loadBalancer:
+      simple: ROUND_ROBIN

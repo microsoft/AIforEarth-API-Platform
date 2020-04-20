@@ -6,6 +6,7 @@ After developing an algorithm or machine learning model, researchers face the pr
 2. [AI for Earth API Platform](#AI-for-Earth-API-Platform) - Overview and features.
 3. [Platform Elements and Costs](#Platform-Elements-and-Costs)
 4. [Platform Deployment](#Platform-Deployment)
+5. [API Deployment](#API-Deployment)
 6. [Platform Alternatives](#Alternatives)
 7. [Contributions](#Contributing)
 
@@ -135,6 +136,9 @@ API Management can be [configured with a consumption plan or a dedicated plan](h
 
 ## Platform Deployment
 The platform may be deployed using scripts provided in the [InfrastructureDeployment](./InfrastructureDeployment) directory.  Please follow the [instructions](./InfrastructureDeployment/README.md) in that directory to deploy the API Platform to Azure.
+
+## API Deployment
+Your API can be deployed to the API Platform by following the [API instructions](./APIs/README.md).
 
 ## Alternatives
 Development on the AI for Earth API Platform began in the Spring of 2018. Recently, there have been a number of improvements to the [Azure Machine Learning Service](https://docs.microsoft.com/en-us/azure/machine-learning/service/how-to-deploy-azure-kubernetes-service) and [MLOps](https://docs.microsoft.com/en-us/azure/machine-learning/service/concept-model-management-and-deployment) that have greatly bridged the inference service gaps that we had initially identified.

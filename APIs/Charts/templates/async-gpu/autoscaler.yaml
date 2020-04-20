@@ -1,0 +1,21 @@
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: service-name-autoscaler
+  namespace: default
+spec:
+  scaleTargetRef:
+    apiVersion: extensions/v1beta1
+    kind: Deployment
+    name: service-name
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      targetAverageUtilization: 100
+  - type: Pods
+    pods:
+      metricName: appinsights-metric-connector-name
+      targetAverageValue: 1

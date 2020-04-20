@@ -11,7 +11,62 @@ There are three types of files required for deployment:
     - Master script that runs each deployment script in sequence.
 - Individual component/feature deployment scripts.
 
-### Component/feature deployment scripts
+## Contents
+1. [Installation Process](#Installation-Process)
+2. [Component/feature deployment scripts](#Component/feature-deployment-scripts)
+
+## Installation Process
+To quickly get up and running, follow these steps.
+
+1. Edit the [setup_env.sh](setup_env.sh) file.  This is where you configure the deployment.
+2. From the top-level directory, run the following script.  Note that connection issues and service creation latencies may result in errors.  The scripts are designed such that you can rerun and services will not be recreated.  There are some commented out resolutions in the scripts that may be of value.
+```bash
+bash InfrastructureDeployment/deploy_infrastructure.sh
+```
+3. [Secure the Istio Gateway](https://istio.io/docs/tasks/traffic-management/ingress/secure-ingress-mount/#configure-a-tls-ingress-gateway-with-a-file-mount-based-approach).  This is optional, but should be completed for production instances.  All of these steps are documented at the above link, but are listed here for brevity.  To secure the gateway, please follow these steps:
+   1.  Get the ingress IP and ports of the Istio gateway:
+   ```bash
+   kubectl get svc istio-ingressgateway -n istio-system
+   ```
+   2. Generate server certificate and private key:
+   ```bash
+   openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -subj '/O=example Inc./CN=example.com' -keyout example.com.key -out example.com.crt
+   ```
+   3. Create a certificate and a private key (replace httpbin.example.com and organization):
+   ```bash
+   openssl req -out httpbin.example.com.csr -newkey rsa:2048 -nodes -keyout httpbin.example.com.key -subj "/CN=httpbin.example.com/O=httpbin organization"
+   openssl x509 -req -days 365 -CA example.com.crt -CAkey example.com.key -set_serial 0 -in httpbin.example.com.csr -out httpbin.example.com.crt
+   ```
+   4. Create a Kubernetes secret to hold the server’s certificate and private key (the secret must be named istio-ingressgateway-certs in the istio-system namespace):
+   ```bash
+   kubectl create -n istio-system secret tls istio-ingressgateway-certs --key httpbin.example.com.key --cert httpbin.example.com.crt
+   ```
+   5. Modify the default Istio gateway to use the HTTPS protocol (replace httpbin.example.com):
+   ```bash
+   kubectl apply -f - <<EOF
+    apiVersion: networking.istio.io/v1alpha3
+    kind: Gateway
+    metadata:
+    name: ai4e-gateway
+    spec:
+    selector:
+        istio: ingressgateway # use istio default ingress gateway
+    servers:
+    - port:
+        number: 443
+        name: https
+        protocol: HTTPS
+        tls:
+        mode: SIMPLE
+        serverCertificate: /etc/istio/ingressgateway-certs/tls.crt
+        privateKey: /etc/istio/ingressgateway-certs/tls.key
+        hosts:
+        - "httpbin.example.com"
+    EOF
+```
+
+
+## Component/feature deployment scripts
 Provided that prerequisites have been deployed, component deployment scripts may be run outside of the [deploy_infrastructure.sh](./deploy_infrastructure.sh) script.  The scripts are typically executed in the following order.
 
 ### [deploy_prerequisites.sh](./deploy_prerequisites.sh)

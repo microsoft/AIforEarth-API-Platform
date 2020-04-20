@@ -1,0 +1,42 @@
+global:
+  registry_location: "off-cluster"
+replicaCount: 1
+image:
+  repository: acrrepo.azurecr.io/image-name
+  name: image-name
+  tag: 1
+  version: v1
+  pullPolicy: Always
+  secret: registrysecretname
+service:
+  internalPort: 8021
+  type: ClusterIP
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 1001m
+    memory: 500m
+env:
+  CACHE_CONNECTOR_GET_URI: ""
+  CACHE_CONNECTOR_UPSERT_URI: ""
+  APPINSIGHTS_INSTRUMENTATIONKEY: ""
+  DISABLE_CURRENT_REQUEST_METRIC: "False"
+  SERVICE_CLUSTER: ""
+  SERVICE_MODEL_NAME: ""
+  SERVICE_MODEL_FRAMEWORK: ""
+  SERVICE_MODEL_FRAMEOWRK_VERSION: ""
+  SERVICE_MODEL_VERSION: "1.0"
+  SERVICE_NAME: ""
+  SERVICE_VERSION: "1.0"
+  SERVICE_CONTAINER_VERSION: ""
+  SERVICE_CONTAINER_NAME: ""
+  DEBUG: "FALSE"
+volumeMounts:
+  - name: nvidia
+    mountPath: /usr/local/nvidia
+volumes:
+  - name: nvidia
+    hostPath:
+      path: /usr/local/nvidia

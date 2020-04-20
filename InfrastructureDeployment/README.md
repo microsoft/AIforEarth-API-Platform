@@ -63,7 +63,7 @@ bash InfrastructureDeployment/deploy_infrastructure.sh
         hosts:
         - "httpbin.example.com"
     EOF
-```
+    ```
 
 
 ## Component/feature deployment scripts

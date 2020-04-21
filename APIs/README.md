@@ -55,7 +55,7 @@ For all of the following steps, please reference the camera-trap example, locate
 ## Deploying a Production API
 
 ### Configure API Variables
-Before deploying to the cluster, edit the chart's prod-values.yaml file.  This contains all configuration values to be used by your service. The Azure Function URLs can be retrieved by using the [async_retrieve_cache_connector_urls helper function](async_retrieve_cache_connector_urls.sh).
+Before deploying to the cluster, edit the chart's prod-values.yaml file.  This contains all configuration values to be used by your service. The Azure Function URLs can be retrieved by using the [async_retrieve_cache_connector_urls helper function](../APIManagement/async_retrieve_cache_connector_urls.sh).
 
 Azure Function URLs are mapped to variables according to the following table:
 
@@ -68,20 +68,20 @@ Azure Function URLs are mapped to variables according to the following table:
 ### Deploy the API Service to Production
 ```bash
 # Deploy instance.
-helm install --values ./Charts/service-name/prod-values.yaml --name service-name ./Charts/service-name
+helm install --values ./Charts/service-name/prod-values.yaml service-name ./Charts/service-name
 
 # Apply auto-scaling.
 kubectl apply -f ./Charts/service-name/autoscaler.yaml
 
 # Apply service routing.
-kubectl apply -f ./Charts/service-name//routing.yaml
+kubectl apply -f ./Charts/service-name/routing.yaml
 
 # Apply optional Application Insights custom scaling metric.
 kubectl apply -f ./Charts/service-name/appinsights-metric.yaml
 ```
 
 ### Add the API to API Management
-The [create_sync_api_management_api.sh](./create_sync_api_management_api.sh) is used as an example of how to add sync APIs to your API Management instance, whereas the [create_async_api_management_api.sh](./create_async_api_management_api.sh) is used as an example of how to add async APIs.  Copy the create_sync_api_management_api.sh file and use it as a template.  To deploy to Azure, run the following:
+The [create_sync_api_management_api.sh](../APIManagement/create_sync_api_management_api.sh) is used as an example of how to add sync APIs to your API Management instance, whereas the [create_async_api_management_api.sh](../APIManagement/create_async_api_management_api.sh) is used as an example of how to add async APIs.  Copy the create_sync_api_management_api.sh file and use it as a template.  To deploy to Azure, run the following:
 ```bash
 bash ../APIManagement/create_sync_api_management_api.sh
 ```

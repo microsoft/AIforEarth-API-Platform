@@ -35,6 +35,7 @@ bash InfrastructureDeployment/deploy_infrastructure.sh
    3. Create a certificate and a private key (replace httpbin.example.com and organization):
    ```bash
    openssl req -out httpbin.example.com.csr -newkey rsa:2048 -nodes -keyout httpbin.example.com.key -subj "/CN=httpbin.example.com/O=httpbin organization"
+
    openssl x509 -req -days 365 -CA example.com.crt -CAkey example.com.key -set_serial 0 -in httpbin.example.com.csr -out httpbin.example.com.crt
    ```
    4. Create a Kubernetes secret to hold the server’s certificate and private key (the secret must be named istio-ingressgateway-certs in the istio-system namespace):
@@ -42,26 +43,26 @@ bash InfrastructureDeployment/deploy_infrastructure.sh
    kubectl create -n istio-system secret tls istio-ingressgateway-certs --key httpbin.example.com.key --cert httpbin.example.com.crt
    ```
    5. Modify the default Istio gateway to use the HTTPS protocol (replace httpbin.example.com):
-   ```bash
-   kubectl apply -f - <<EOF
+    ```bash
+    kubectl apply -f - <<EOF
     apiVersion: networking.istio.io/v1alpha3
     kind: Gateway
     metadata:
-    name: ai4e-gateway
+        name: ai4e-gateway
     spec:
-    selector:
-        istio: ingressgateway # use istio default ingress gateway
-    servers:
-    - port:
-        number: 443
-        name: https
-        protocol: HTTPS
+        selector:
+            istio: ingressgateway # use istio default ingress gateway
+        servers:
+        - port:
+            number: 443
+            name: https
+            protocol: HTTPS
         tls:
-        mode: SIMPLE
-        serverCertificate: /etc/istio/ingressgateway-certs/tls.crt
-        privateKey: /etc/istio/ingressgateway-certs/tls.key
+            mode: SIMPLE
+            serverCertificate: /etc/istio/ingressgateway-certs/tls.crt
+            privateKey: /etc/istio/ingressgateway-certs/tls.key
         hosts:
-        - "httpbin.example.com"
+            - "*" # replace with API Management URL
     EOF
     ```
 

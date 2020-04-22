@@ -65,7 +65,7 @@ bash InfrastructureDeployment/deploy_infrastructure.sh
             - "*" # replace with API Management URL
     EOF
     ```
-
+4. [Deploy](../APIs) your APIs.
 
 ## Component/feature deployment scripts
 Provided that prerequisites have been deployed, component deployment scripts may be run outside of the [deploy_infrastructure.sh](./deploy_infrastructure.sh) script.  The scripts are typically executed in the following order.

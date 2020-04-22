@@ -4,7 +4,7 @@ FUNCTION_IMAGE_DOCKER_USER_NAME=""
 FUNCTION_IMAGE_DOCKER_USER_PASSWORD=""
 
 AZURE_SUBSCRIPTION_ID=""
-DEPLOYMENT_PREFIX="ai4e-api-backend-master-test-2"
+DEPLOYMENT_PREFIX="your-prefix"
 # Storage account names must be fewer than 24 characters.
 FUNCTION_STORAGE_NAME=""                     # Azure Function Storage
 CONTAINER_REGISTRY_NAME=""                              # ACR name

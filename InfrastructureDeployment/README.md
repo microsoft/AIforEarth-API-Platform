@@ -13,7 +13,8 @@ There are three types of files required for deployment:
 
 ## Contents
 1. [Installation Process](#Installation-Process)
-2. [Component/feature deployment scripts](#Component/feature-deployment-scripts)
+2. [Component and feature deployment scripts](#Component-and-feature-deployment-scripts)
+3. [Infrastructure Management](#Infrastructure-Management)
 
 ## Installation Process
 To quickly get up and running, follow these steps.
@@ -67,7 +68,7 @@ bash InfrastructureDeployment/deploy_infrastructure.sh
     ```
 4. [Deploy](../APIs) your APIs.
 
-## Component/feature deployment scripts
+## Component and feature deployment scripts
 Provided that prerequisites have been deployed, component deployment scripts may be run outside of the [deploy_infrastructure.sh](./deploy_infrastructure.sh) script.  The scripts are typically executed in the following order.
 
 ### [deploy_prerequisites.sh](./deploy_prerequisites.sh)

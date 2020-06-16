@@ -21,14 +21,16 @@
 
         private ILogger logger = null;
 
-        private static TelemetryConfiguration config = new TelemetryConfiguration { InstrumentationKey = System.Environment.GetEnvironmentVariable("APPINSIGHTS_INSTRUMENTATIONKEY", EnvironmentVariableTarget.Process) };
-        private static TelemetryClient telemetryClient = new TelemetryClient(config);
+        private readonly TelemetryClient telemetryClient;
 
         public AppInsightsLogger(ILogger logger, string serviceName, string serviceVersion)
         {
             this.logger = logger;
             service_name = serviceName;
             service_version = serviceVersion;
+
+            var config = new TelemetryConfiguration { InstrumentationKey = System.Environment.GetEnvironmentVariable("APPINSIGHTS_INSTRUMENTATIONKEY", EnvironmentVariableTarget.Process) };
+            this.telemetryClient = new TelemetryClient(config);
         }
 
         public void LogMetric(string name, double value, string endpoint)
@@ -40,51 +42,41 @@
 
         public void LogInformation(string message, string uri = "nil", string task_id = "nil")
         {
+            logger.LogInformation("msg: " + message.ToString());
+            logger.LogInformation("url: " + uri.ToString());
+            logger.LogInformation("task_id: " + task_id.ToString());
+            logger.LogInformation("service_owner: " + service_owner.ToString());
+            logger.LogInformation("service_name: " + service_name.ToString());
+            logger.LogInformation("service_version: " + service_version.ToString());
+            logger.LogInformation("service_cluster: " + service_cluster.ToString());
 
-            var formatted_msg = message +
-                "," +
-                $" service_owner={service_owner}, service_name={service_name}, service_version={service_version}, service_cluster={service_cluster}, uri={uri}, task_id={task_id}";
+            var formatted_msg = String.Format("{0}, service_owner={1}, service_name={2}, service_version={3}, service_cluster={4}, uri={5}, task_id={6}", 
+                message, service_owner, service_name, service_version, service_cluster, uri, task_id);
 
             try
             {
-                logger.LogInformation(formatted_msg, service_owner, service_name, service_version, service_cluster, uri, task_id);
+                logger.LogInformation(formatted_msg);
 
             }
             catch(Exception ex)
             {
-                logger.LogError(ex.Message + ex.StackTrace.ToString());
+                logger.LogCritical(ex, message);
             }
         }
 
         public void LogRedisUpsert(string message, string upsert_type, string timestamp, string record, string uri = "nil", string task_id = "nil")
         {
-            var formatted_msg = message +
-                $", service_owner={service_owner}, " +
-                $"service_name={service_name}, " +
-                $"service_version={service_version}, " +
-                $"service_cluster={service_cluster}, " +
-                $"uri={uri}, " +
-                $"task_id={task_id}, " +
-                $"upsert_type={upsert_type}, " +
-                $"timestamp={timestamp}, " +
-                $"record={record}";
+            var formatted_msg = String.Format("{0}, service_owner={1}, service_name={2}, service_version={3}, service_cluster={4}, uri={5}, task_id={6}, upsert_type={7}, timestamp={8}, record={9}",
+                message, service_owner, service_name, service_version, service_cluster, uri, task_id, upsert_type, timestamp, record);
+
             try
             {
-                logger.LogInformation(formatted_msg,
-                    service_owner,
-                    service_name,
-                    service_version,
-                    service_cluster,
-                    uri,
-                    task_id,
-                    upsert_type,
-                    timestamp,
-                    record);
+                logger.LogInformation(formatted_msg);
 
             }
-            catch (Exception ex)
+            catch(Exception ex)
             {
-                logger.LogError(ex.Message + ex.StackTrace.ToString());
+                logger.LogCritical(ex, message);
             }
         }
 
@@ -100,7 +92,7 @@
             }
             catch (Exception ex)
             {
-                logger.LogError(ex.Message + ex.StackTrace.ToString());
+                logger.LogCritical(ex, message);
             }
         }
 
@@ -112,12 +104,12 @@
 
             try
             {
-                logger.LogError(ex, formatted_msg,
+                logger.LogCritical(ex, formatted_msg,
                     service_owner, service_name, service_version, service_cluster, uri, task_id);
             }
             catch (Exception e)
             {
-                logger.LogError(e, message);
+                logger.LogCritical(e, message);
             }
 
         }

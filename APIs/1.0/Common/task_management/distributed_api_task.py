@@ -61,8 +61,9 @@ class DistributedApiTaskManager:
             return json.loads('{"TaskId": "-1", "Status": "error"}')
         
         parsed_endpoint = urlparse(old_stat['Endpoint'])
+        path = '{}/{}/{}'.format(version, organization_moniker, api_name)
+        next_endpoint = '{}://{}/{}'.format(parsed_endpoint.scheme, parsed_endpoint.netloc, path)
 
-        next_endpoint = urlunparse(('http', parsed_endpoint.netloc, version + '/' + organization_moniker + '/' + api_name))
         print("Sending to next endpoint: " + next_endpoint)
 
         r = requests.post(self.cache_connector_upsert_url,

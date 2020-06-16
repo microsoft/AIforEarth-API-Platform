@@ -151,6 +151,7 @@ The task process logger retrieves the number of tasks being processed and the nu
 
 ## Infrastructure Management
 The following is a collection of links and how-to's that will help with common infrastructure operations.
+- [General Troubleshooting](https://docs.microsoft.com/en-us/azure/aks/troubleshooting)
 - [Manually scaling](https://docs.microsoft.com/en-us/azure/aks/use-multiple-node-pools#scale-a-node-pool-manually) an AKS cluster.
 - There are two forms of autoscaling that are employed by default in the platform - [pod](https://docs.microsoft.com/en-us/azure/aks/tutorial-kubernetes-scale) and [cluster](https://docs.microsoft.com/en-us/azure/aks/cluster-autoscaler).
 - [Application Insights](https://docs.microsoft.com/en-us/azure/azure-monitor/app/app-insights-overview) is used by [AI for Earth images](https://github.com/microsoft/AIforEarth-API-Development#Create-AppInsights-instrumentation-keys) to ingest metrics and logs from [Python](https://docs.microsoft.com/en-us/azure/azure-monitor/app/opencensus-python) and [R](https://github.com/microsoft/AIforEarth-API-Development/blob/master/Containers/base-r/ai4e_api_tools/ai4e_app_insights.R) into Azure Monitor.  Azure Monitor integrates with AKS via [Azure Monitor for containers](https://docs.microsoft.com/en-us/azure/azure-monitor/insights/container-insights-overview).

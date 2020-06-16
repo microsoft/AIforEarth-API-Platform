@@ -5,7 +5,7 @@ source ./InfrastructureDeployment/setup_env.sh
 if "$DEPLOY_TASK_PROCESS_LOGGER_FUNCTION_APP" = "true"
 then
     echo "Creating the task process logger Azure Function App."
-    az functionapp create --name $TASK_PROCESS_LOGGER_FUNCTION_APP_NAME --storage-account $FUNCTION_STORAGE_NAME --resource-group $INFRASTRUCTURE_RESOURCE_GROUP_NAME --plan $FUNCTION_APP_NAME-plan --deployment-container-image-name $TASK_PROCESS_LOGGER_IMAGE --app-insights $APP_INSIGHTS_RESOURCE_NAME --docker-registry-server-user $FUNCTION_IMAGE_DOCKER_USER_NAME --docker-registry-server-password $FUNCTION_IMAGE_DOCKER_USER_PASSWORD 
+    az functionapp create --name $TASK_PROCESS_LOGGER_FUNCTION_APP_NAME --storage-account $FUNCTION_STORAGE_NAME --resource-group $INFRASTRUCTURE_RESOURCE_GROUP_NAME --plan $FUNCTION_APP_NAME-plan --deployment-container-image-name $TASK_PROCESS_LOGGER_IMAGE --app-insights $APP_INSIGHTS_RESOURCE_NAME  
     if [ $? -ne 0 ]
     then
         echo "Could not create the $TASK_PROCESS_LOGGER_FUNCTION_APP_NAME task process logger Azure Function App."

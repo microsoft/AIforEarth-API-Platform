@@ -54,20 +54,15 @@
                         if (reader.BaseStream.Length > 0)
                         {
                             body = reader.ReadToEnd();
-                            logger.LogInformation("body: " + body);
 
-                            try
+                            if (body.StartsWith("["))
                             {
-                                appInsightsLogger.LogInformation("DeserializeObject<APITask>(body)");
-                                task = JsonConvert.DeserializeObject<APITask>(body);
-                            }
-                            catch
-                            {
-                                appInsightsLogger.LogInformation("DeserializeObject<APITask>(body[])");
                                 task = JsonConvert.DeserializeObject<APITask[]>(body)[0];
                             }
-
-                            appInsightsLogger.LogInformation("task.PublishToGrid: " + task.PublishToGrid.ToString(), task.Endpoint, task.TaskId);
+                            else
+                            {
+                                task = JsonConvert.DeserializeObject<APITask>(body);
+                            }
                         }
                         else
                         {
@@ -78,6 +73,7 @@
                 }
                 catch (Exception ex)
                 {
+                    appInsightsLogger.LogInformation(ex.Message + ex.StackTrace.ToString());
                     appInsightsLogger.LogError(ex);
                     appInsightsLogger.LogRedisUpsert("Redis upsert failed.", redisOperation, task.Timestamp, body);
                     return new StatusCodeResult(500);

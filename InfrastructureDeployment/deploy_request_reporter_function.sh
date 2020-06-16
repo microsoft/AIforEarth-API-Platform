@@ -5,7 +5,7 @@ source ./InfrastructureDeployment/setup_env.sh
 if "$DEPLOY_REQUEST_REPORTER_FUNCTION_APP" = "true"
 then
     echo "Creating the request reporter Azure Function App."
-    az functionapp create --name $REQUEST_REPORTER_FUNCTION_APP_NAME --storage-account $FUNCTION_STORAGE_NAME --resource-group $INFRASTRUCTURE_RESOURCE_GROUP_NAME --plan $FUNCTION_APP_NAME-plan --deployment-container-image-name $REQUEST_REPORTER_IMAGE --app-insights $APP_INSIGHTS_RESOURCE_NAME --docker-registry-server-user $FUNCTION_IMAGE_DOCKER_USER_NAME --docker-registry-server-password $FUNCTION_IMAGE_DOCKER_USER_PASSWORD
+    az functionapp create --name $REQUEST_REPORTER_FUNCTION_APP_NAME --storage-account $FUNCTION_STORAGE_NAME --resource-group $INFRASTRUCTURE_RESOURCE_GROUP_NAME --plan $FUNCTION_APP_NAME-plan --deployment-container-image-name $REQUEST_REPORTER_IMAGE --app-insights $APP_INSIGHTS_RESOURCE_NAME 
     if [ $? -ne 0 ]
     then
         echo "Could not create the $REQUEST_REPORTER_FUNCTION_APP_NAME request reporter Azure Function App."

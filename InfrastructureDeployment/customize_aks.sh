@@ -16,6 +16,8 @@ if "$INSTALL_ISTIO" = "true"
 then
     echo "Installing Istio."
     # Download Istio.
+    # Change link for arch type
+    # https://github.com/istio/istio/releases/tag/1.4.5
     curl -sL "https://github.com/istio/istio/releases/download/$ISTIO_VERSION/istio-$ISTIO_VERSION-osx.tar.gz" | tar xz
 
     if [ $? -ne 0 ]
@@ -27,7 +29,7 @@ then
 
     chmod +x ./istio-$ISTIO_VERSION/bin/istioctl
 
-    ./istio-$ISTIO_VERSION/bin/istioctl manifest apply --set values.global.mtls.enabled=true --set values.global.controlPlaneSecurityEnabled=true --logtostderr
+    ./istio-$ISTIO_VERSION/bin/istioctl manifest apply --set values.global.mtls.auto=true --set values.global.controlPlaneSecurityEnabled=true --logtostderr
     iteration=1
     while [ $? -ne 0 ]
     do

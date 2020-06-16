@@ -8,6 +8,10 @@ InternalUpdateTaskStatus<-function(taskId, status, backendStatus){
   print(paste0("Updating task: ", taskId, " to:", status))
   old_stat <- GetTaskStatus(taskId)
 
+  if (old_stat$TaskId == "-1") {
+    return(old_stat)
+  }
+
   if (is.empty(old_stat$Endpoint)) {
     endpoint <- 'http://localhost'
   }
@@ -97,10 +101,10 @@ FailTask<-function(taskId, status){
 #* @get /task/<taskId>
 GetTaskStatus<-function(taskId){
   uri <- paste0(Sys.getenv('CACHE_CONNECTOR_GET_URI'), "&taskId=", taskId)
-  r <- GET(uri)
+  r <- RETRY("GET", uri, times=5)
 
   if (status_code(r) != 200) {
-    print(paste0("GetTaskStatus result:", "Task (", taskId, ") not found."))
+    print(paste0("GetTaskStatus result:", "Task (", taskId, ") error: ", status_code(r), ": ", content(r, as=text)))
     return('{"TaskId": "-1", "Status": "error"}')
   }
   else {

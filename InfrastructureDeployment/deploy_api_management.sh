@@ -33,7 +33,7 @@ get_fun_url="https://$CACHE_MANAGER_FUNCTION_APP_NAME.azurewebsites.net/api/Cach
 # Configure and create the API Management service
 python3 -c "import APIManagement.api_management_customizer as customizer; customizer.customize_api_management_creation_body('$API_MANAGEMENT_ADMIN_EMAIL', '$API_MANAGEMENT_ORGANIZATION_NAME', '$API_MANAGEMENT_SKU', '$API_MANAGEMENT_REGION')"
 
-echo "Issuing request:"
+echo "Issuing request to configure and create the API Management service:"
 echo "https://management.azure.com/subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/$INFRASTRUCTURE_RESOURCE_GROUP_NAME/providers/Microsoft.ApiManagement/service/$API_MANAGEMENT_NAME?api-version=2019-01-01"
 az rest --method put --uri "https://management.azure.com/subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/$INFRASTRUCTURE_RESOURCE_GROUP_NAME/providers/Microsoft.ApiManagement/service/$API_MANAGEMENT_NAME?api-version=2019-01-01" --body @customized_api_management_body.json
 while [ $? -ne 0 ]
@@ -52,7 +52,7 @@ do
     az rest --method put --uri "https://management.azure.com/subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/$INFRASTRUCTURE_RESOURCE_GROUP_NAME/providers/Microsoft.ApiManagement/service/$API_MANAGEMENT_NAME?api-version=2019-01-01" --body @customized_api_management_body.json
 done
 
-echo "Issuing request:"
+echo "Issuing request to create the TaskManagement API:"
 echo "https://management.azure.com/subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/$INFRASTRUCTURE_RESOURCE_GROUP_NAME/providers/Microsoft.ApiManagement/service/$API_MANAGEMENT_NAME/apis/TaskManagement?api-version=2019-01-01" 
 # Create the TaskManagement API
 az rest --method put --uri "https://amanagement.azure.com/subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/$INFRASTRUCTURE_RESOURCE_GROUP_NAME/providers/Microsoft.ApiManagement/service/$API_MANAGEMENT_NAME/apis/TaskManagement?api-version=2019-01-01" --body @APIManagement/task_management_api_body.json
@@ -78,7 +78,7 @@ do
 done
 
 # Create the TaskManagement API GET operation
-echo "Issuing request:"
+echo "Issuing request to create the TaskManagement API GET operation:"
 echo "https://management.azure.com/subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/$INFRASTRUCTURE_RESOURCE_GROUP_NAME/providers/Microsoft.ApiManagement/service/$API_MANAGEMENT_NAME/apis/TaskManagement/operations/task?api-version=2019-01-01"
 az rest --method put --uri "https://management.azure.com/subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/$INFRASTRUCTURE_RESOURCE_GROUP_NAME/providers/Microsoft.ApiManagement/service/$API_MANAGEMENT_NAME/apis/TaskManagement/operations/task?api-version=2019-01-01" --body @APIManagement/task_management_operation_body.json
 echo "result: $?"
@@ -101,7 +101,7 @@ do
 done
 
 # Create the TaskManagement API GET operation's policy
-echo "Issuing request:"
+echo "Issuing request to create the TaskManagement API GET operation's policy:"
 echo "https://management.azure.com/subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/$INFRASTRUCTURE_RESOURCE_GROUP_NAME/providers/Microsoft.ApiManagement/service/$API_MANAGEMENT_NAME/apis/TaskManagement/operations/task/policies/policy?api-version=2019-01-01"
 python3 -c "import APIManagement.api_management_customizer as customizer; customizer.customize_task_management_policy('$get_fun_url')"
 az rest --method put --uri "https://management.azure.com/subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/$INFRASTRUCTURE_RESOURCE_GROUP_NAME/providers/Microsoft.ApiManagement/service/$API_MANAGEMENT_NAME/apis/TaskManagement/operations/task/policies/policy?api-version=2019-01-01" --body @customized_task_management_policy.json

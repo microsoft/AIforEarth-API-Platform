@@ -1,9 +1,11 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: nvidia-device-plugin-daemonset
-  namespace: kube-system
 spec:
+  selector:
+    matchLabels:
+      name: nvidia-device-plugin-ds
   updateStrategy:
     type: RollingUpdate
   template:
@@ -21,11 +23,12 @@ spec:
       # This, along with the annotation above marks this pod as a critical add-on.
       - key: CriticalAddonsOnly
         operator: Exists
-      - key: nvidia.com/gpu
-        operator: Exists
-        effect: NoSchedule
+      - key: sku
+        operator: "Equal"
+        value: "gpu"
+        effect: "NoSchedule"
       containers:
-      - image: nvidia/k8s-device-plugin:1.0.0-beta
+      - image: nvidia/k8s-device-plugin:1.11
         name: nvidia-device-plugin-ctr
         securityContext:
           allowPrivilegeEscalation: false

@@ -42,20 +42,10 @@
 
         public void LogInformation(string message, string uri = "nil", string task_id = "nil")
         {
-            logger.LogInformation("msg: " + message.ToString());
-            logger.LogInformation("url: " + uri.ToString());
-            logger.LogInformation("task_id: " + task_id.ToString());
-            logger.LogInformation("service_owner: " + service_owner.ToString());
-            logger.LogInformation("service_name: " + service_name.ToString());
-            logger.LogInformation("service_version: " + service_version.ToString());
-            logger.LogInformation("service_cluster: " + service_cluster.ToString());
-
-            var formatted_msg = String.Format("{0}, service_owner={1}, service_name={2}, service_version={3}, service_cluster={4}, uri={5}, task_id={6}", 
-                message, service_owner, service_name, service_version, service_cluster, uri, task_id);
-
             try
             {
-                logger.LogInformation(formatted_msg);
+                logger.LogInformation(message + ", service_owner={service_owner}, service_name={service_name}, service_version={service_version}, service_cluster={service_cluster}, uri={uri}, task_id={task_id}", 
+                message, service_owner, service_name, service_version, service_cluster, uri, task_id);
 
             }
             catch(Exception ex)
@@ -66,12 +56,10 @@
 
         public void LogRedisUpsert(string message, string upsert_type, string timestamp, string record, string uri = "nil", string task_id = "nil")
         {
-            var formatted_msg = String.Format("{0}, service_owner={1}, service_name={2}, service_version={3}, service_cluster={4}, uri={5}, task_id={6}, upsert_type={7}, timestamp={8}, record={9}",
-                message, service_owner, service_name, service_version, service_cluster, uri, task_id, upsert_type, timestamp, record);
-
             try
             {
-                logger.LogInformation(formatted_msg);
+                logger.LogInformation(message + ", service_owner={service_owner}, service_name={service_name}, service_version={service_version}, service_cluster={service_cluster}, uri={uri}, task_id={task_id}", 
+                message, service_owner, service_name, service_version, service_cluster, uri, task_id);
 
             }
             catch(Exception ex)
@@ -82,13 +70,10 @@
 
         public void LogWarning(string message, string uri = "nil", string task_id = "nil")
         {
-            var formatted_msg = message +
-                "," +
-                $"service_owner={service_owner}, service_name={service_name}, service_version={service_version}, service_cluster={service_cluster}, uri={uri}, task_id={task_id}";
-
             try
             {
-                logger.LogWarning(formatted_msg, service_owner, service_name, service_version, service_cluster, uri, task_id);
+                logger.LogWarning(message + ", service_owner={service_owner}, service_name={service_name}, service_version={service_version}, service_cluster={service_cluster}, uri={uri}, task_id={task_id}", 
+                message, service_owner, service_name, service_version, service_cluster, uri, task_id);
             }
             catch (Exception ex)
             {
@@ -98,20 +83,15 @@
 
         public void LogError(Exception ex, string uri = "nil", string task_id = "nil", string message = "")
         {
-            var formatted_msg = message +
-                "," +
-                $" service_owner={service_owner}, service_name={service_name}, service_version={service_version}, service_cluster={service_cluster}, uri={uri}, task_id={task_id}";
-
             try
             {
-                logger.LogCritical(ex, formatted_msg,
-                    service_owner, service_name, service_version, service_cluster, uri, task_id);
+                logger.LogCritical(ex, message + ", service_owner={service_owner}, service_name={service_name}, service_version={service_version}, service_cluster={service_cluster}, uri={uri}, task_id={task_id}", 
+                message, service_owner, service_name, service_version, service_cluster, uri, task_id);
             }
             catch (Exception e)
             {
                 logger.LogCritical(e, message);
             }
-
         }
     }
 }

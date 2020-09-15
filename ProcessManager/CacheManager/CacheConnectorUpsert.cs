@@ -19,6 +19,7 @@
     using System.Threading.Tasks;
     using ProcessManager.Libraries;
     using ProcessManager.Classes;
+    using System.Diagnostics;
 
     public static class CacheConnectorUpsert
     {
@@ -36,10 +37,11 @@
         private const string GRID_PUBLISH_RECORD_KEY = "ORIG";
 
         [FunctionName("CacheConnectorUpsert")]
-        public static IActionResult Run([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)]HttpRequest req, ILogger logger)
+        public static async Task<IActionResult> TaskRun([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)]HttpRequest req, ILogger logger)
         {
             IDatabase db = null;
             AppInsightsLogger appInsightsLogger = new AppInsightsLogger(logger, LOGGING_SERVICE_NAME, LOGGING_SERVICE_VERSION);
+
             var redisOperation = "insert";
 
             APITask task = null;
@@ -81,6 +83,7 @@
             }
             else
             {
+                appInsightsLogger.LogInformation("Parameters missing. Unable to create task.");
                 appInsightsLogger.LogWarning("Parameters missing. Unable to create task.");
                 return new BadRequestResult();
             }
@@ -93,7 +96,6 @@
             else
             {
                 task.TaskId = Guid.NewGuid().ToString();
-                appInsightsLogger.LogInformation("Generated new taskId: " + task.TaskId, task.Endpoint, task.TaskId);
             }
 
             task.Timestamp = DateTime.UtcNow.ToString();
@@ -104,6 +106,7 @@
             }
             catch (Exception ex)
             {
+                appInsightsLogger.LogInformation(ex.Message + ex.StackTrace.ToString());
                 appInsightsLogger.LogError(ex, task.Endpoint, task.TaskId);
                 appInsightsLogger.LogRedisUpsert("Redis upsert failed.", redisOperation, task.Timestamp, task.Endpoint, task.TaskId);
                 return new StatusCodeResult(500);
@@ -118,15 +121,14 @@
                 serializedTask = JsonConvert.SerializeObject(task);
                 RedisValue res = RedisValue.Null;
 
-                appInsightsLogger.LogInformation("Setting Redis task record", task.Endpoint, task.TaskId);
                 var upsertTransaction = db.CreateTransaction();
+
                 upsertTransaction.StringSetAsync(task.TaskId, serializedTask);
 
                 // Get seconds since epoch
                 TimeSpan ts = (DateTime.UtcNow - new DateTime(1970, 1, 1));
                 int timestamp = (int)ts.TotalSeconds;
 
-                appInsightsLogger.LogInformation(string.Format("Adding backend status '{0}' for endpoint.", task.BackendStatus), task.Endpoint, task.TaskId);
                 upsertTransaction.SortedSetAddAsync(string.Format("{0}_{1}", task.EndpointPath, task.BackendStatus), new SortedSetEntry[] { new SortedSetEntry(task.TaskId, timestamp) });
                 
                 if (task.BackendStatus.Equals(BACKEND_STATUS_RUNNING))
@@ -147,29 +149,35 @@
                 {
                     if (string.IsNullOrEmpty(taskBody))
                     {
-                        appInsightsLogger.LogInformation("It IS a pipeline call", task.Endpoint, task.TaskId);
                         // This is a subsequent pipeline publish.
                         isSubsequentPipelineCall = true;
                     }
                     else
                     {
-                        appInsightsLogger.LogInformation("Adding body to redis: " + taskBody, task.Endpoint, task.TaskId);
                         upsertTransaction.StringSetAsync(string.Format("{0}_{1}", task.TaskId, GRID_PUBLISH_RECORD_KEY), taskBody);
                     }
                 }
 
-                ExecuteTransaction(upsertTransaction, task, appInsightsLogger);
+                var watch = Stopwatch.StartNew();
+                if (await upsertTransaction.ExecuteAsync() == false)
+                {
+                    var ex = new Exception("Unable to complete redis transaction.");
+                    appInsightsLogger.LogError(ex, task.Endpoint, task.TaskId);
+                    throw ex;
+                }
+                watch.Stop();
+                appInsightsLogger.LogInformation(string.Format("ExecuteAsync duration: {0}", watch.ElapsedMilliseconds), task.Endpoint, task.TaskId);
 
                 if (isSubsequentPipelineCall)
                 {
                     // We have to get the original body, since it's currently empty.
-                    taskBody = db.StringGet(string.Format("{0}_{1}", task.TaskId, GRID_PUBLISH_RECORD_KEY));
-                    appInsightsLogger.LogInformation("Stored body: " + taskBody, task.Endpoint, task.TaskId);
+                    taskBody = await db.StringGetAsync(string.Format("{0}_{1}", task.TaskId, GRID_PUBLISH_RECORD_KEY));
                 }
 
                 if (task.PublishToGrid)
                 {
-                    if (PublishEvent(task, taskBody, appInsightsLogger) == false)
+                    watch.Restart();
+                    if (await PublishEvent(task, taskBody, appInsightsLogger) == false)
                     {
                         // Move task to failed
                         var updateTransaction = db.CreateTransaction();
@@ -181,15 +189,20 @@
                         updateTransaction.SortedSetAddAsync(string.Format("{0}_{1}", task.EndpointPath, task.BackendStatus), new SortedSetEntry[] { new SortedSetEntry(task.TaskId, timestamp) });
                         updateTransaction.SortedSetRemoveAsync(string.Format("{0}_{1}", task.EndpointPath, BACKEND_STATUS_CREATED), task.TaskId);
 
-                        ExecuteTransaction(updateTransaction, task, appInsightsLogger);
+                        if (await updateTransaction.ExecuteAsync() == false)
+                        {
+                            var ex = new Exception("Unable to complete redis transaction.");
+                            appInsightsLogger.LogError(ex, task.Endpoint, task.TaskId);
+                            throw ex;
+                        }
                     }
+                    watch.Stop();
+                    appInsightsLogger.LogInformation(string.Format("PublishEvent duration: {0}", watch.ElapsedMilliseconds), task.Endpoint, task.TaskId);
                 }
-
-                //LogSetCount(string.Format("{0}_{1}", task.EndpointPath, task.BackendStatus), task, db, appInsightsLogger);
-                appInsightsLogger.LogRedisUpsert("Redis upsert successful.", redisOperation, task.Timestamp, serializedTask, task.Endpoint, task.TaskId);
             }
             catch (Exception ex)
             {
+                appInsightsLogger.LogInformation(ex.Message + ex.StackTrace.ToString());
                 appInsightsLogger.LogError(ex, task.Endpoint, task.TaskId);
                 appInsightsLogger.LogRedisUpsert("Redis upsert failed.", redisOperation, task.Timestamp, serializedTask, task.Endpoint, task.TaskId);
                 return new StatusCodeResult(500);
@@ -198,7 +211,7 @@
             return new OkObjectResult(serializedTask);
         }
 
-        private static bool PublishEvent(APITask task, string taskBody, AppInsightsLogger appInsightsLogger)
+        private static async Task<bool> PublishEvent(APITask task, string taskBody, AppInsightsLogger appInsightsLogger)
         {
             string event_grid_topic_uri = Environment.GetEnvironmentVariable(EVENT_GRID_TOPIC_URI_VARIABLE_NAME, EnvironmentVariableTarget.Process);
             string event_grid_key = Environment.GetEnvironmentVariable(EVENT_GRID_KEY_VARIABLE_NAME, EnvironmentVariableTarget.Process);
@@ -219,7 +232,7 @@
 
             try
             {
-                client.PublishEventsAsync(topicHostname, new List<EventGridEvent>() { ev }).GetAwaiter().GetResult();
+                await client.PublishEventsAsync(topicHostname, new List<EventGridEvent>() { ev });
             }
             catch (Exception ex)
             {
@@ -228,28 +241,6 @@
             }
 
             return true;
-        }
-
-        private static void ExecuteTransaction(ITransaction transaction, APITask task, AppInsightsLogger appInsightsLogger)
-        {
-            int attempt = 1;
-            TimeSpan delaySeconds = TimeSpan.FromSeconds(0);
-            var tran = transaction.ExecuteAsync();
-
-            while (transaction.Wait(tran) == false)
-            {
-                Task.Delay(delaySeconds).GetAwaiter().GetResult();
-
-                if (attempt >= 5)
-                {
-                    var ex = new Exception("Unable to complete redis transaction.");
-                    appInsightsLogger.LogError(ex, task.Endpoint, task.TaskId);
-                    throw ex;
-                }
-
-                delaySeconds.Add(TimeSpan.FromSeconds(2));
-                attempt++;
-            }
         }
 
         private static void LogSetCount(string setName, APITask task, IDatabase db, AppInsightsLogger appInsightsLogger)

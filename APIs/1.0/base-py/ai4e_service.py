@@ -2,46 +2,30 @@
 # Licensed under the MIT License.
 from threading import Thread
 from os import getenv
-from opencensus.trace.tracer import Tracer
-from opencensus.ext.azure.trace_exporter import AzureExporter
+import json
+import requests
+import traceback
 
 from flask import Flask, abort, request, current_app, views
 from flask_restful import Resource, Api
 import signal
-from ai4e_app_insights import AppInsights
 from task_management.api_task import TaskManager
 import sys
 from functools import wraps
 from werkzeug.exceptions import HTTPException
+from ai4e_app_insights_wrapper import AI4EAppInsights
+from azure_monitor_logger import AzureMonitorLogger
 
-from opencensus.trace.tracer import Tracer
-from opencensus.trace.samplers import ProbabilitySampler
-
-import requests
-import json
-
-if not getenv('APPINSIGHTS_INSTRUMENTATIONKEY', None):
-    tracer = Tracer()
-else:
-    sampling_rate = getenv('TRACE_SAMPLING_RATE', None)
-    if not sampling_rate:
-        sampling_rate = 1.0
-
-    tracer = Tracer(
-        exporter=AzureExporter(),
-        sampler=ProbabilitySampler(float(sampling_rate)),
-    )
-
-disable_request_metric = getenv('DISABLE_CURRENT_REQUEST_METRIC', True)
+disable_request_metric = getenv('DISABLE_CURRENT_REQUEST_METRIC', 'True')
 
 current_processing_upsert_url = getenv('CURRENT_PROCESSING_UPSERT_URI')
 service_cluster = getenv('SERVICE_CLUSTER', 'undefined')
 
 MAX_REQUESTS_KEY_NAME = 'max_requests'
-CONTENT_TYPE_KEY_NAME = 'content_type'
+CONTENT_TYPE_KEY_NAME = 'content_types'
 CONTENT_MAX_KEY_NAME = 'content_max_length'
 
-APP_INSIGHTS_REQUESTS_KEY_NAME = 'CURRENT_REQUESTS'
+APP_INSIGHTS_REQUESTS_KEY_NAME = 'REJECTED_STATE'
 
 class Task(Resource):
     def __init__(self, **kwargs):
@@ -61,12 +45,14 @@ class APIService():
         self.app = flask_app
         self.log = logger
         self.api = Api(self.app)
-        self.appinsights = AppInsights(self.app)
         self.is_terminating = False
         self.func_properties = {}
         self.func_request_counts = {}
         self.api_prefix = getenv('API_PREFIX')
-        
+
+        if not isinstance(self.log, AI4EAppInsights):
+            self.tracer = self.log.tracer
+
         self.api_task_manager = TaskManager()
         signal.signal(signal.SIGINT, self.initialize_term)
 
@@ -74,7 +60,7 @@ class APIService():
         self.app.add_url_rule(self.api_prefix + '/', view_func = self.health_check, methods=['GET'])
         print("Adding url rule: " + self.api_prefix + '/')
         # Add task endpoint
-        self.api.add_resource(Task, self.api_prefix + '/task/<int:id>', resource_class_kwargs={ 'task_manager': self.api_task_manager })
+        self.api.add_resource(Task, self.api_prefix + '/task/<id>', resource_class_kwargs={ 'task_manager': self.api_task_manager })
         print("Adding url rule: " + self.api_prefix + '/task/<int:taskId>')
 
         self.app.before_request(self.before_request)
@@ -98,7 +84,7 @@ class APIService():
                     combined_kwargs = {**internal_args, **kwargs, **return_values}
                 else:
                     combined_kwargs = {**internal_args, **kwargs}
-                
+
                 if is_async:
                     task_info = self.api_task_manager.AddTask(request)
                     taskId = str(task_info['TaskId'])
@@ -140,7 +126,7 @@ class APIService():
 
             if (self.func_properties[request.path][CONTENT_TYPE_KEY_NAME] and not request.content_type in self.func_properties[request.path][CONTENT_TYPE_KEY_NAME]):
                 print('Invalid content type. Request has been denied.')
-                abort(401, {'message': 'Content-type must be ' + self.func_properties[request.path][CONTENT_TYPE_KEY_NAME]})
+                abort(401, {'message': 'Content-type must be ' + str(self.func_properties[request.path][CONTENT_TYPE_KEY_NAME])})
 
             if (self.func_properties[request.path][CONTENT_MAX_KEY_NAME] and request.content_length > self.func_properties[request.path][CONTENT_MAX_KEY_NAME]):
                 print('Request is too large. Request has been denied.')
@@ -170,15 +156,23 @@ class APIService():
             self.update_processing_count(api_path, increment_by=0, decrement_by=1)
 
     def wrap_sync_endpoint(self, trace_name=None, *args, **kwargs):
-        if (trace_name):
-            with tracer.span(name=trace_name) as span:
+        if (self.tracer):
+            if (not trace_name):
+                api_path = kwargs['api_path']
+                trace_name = api_path
+
+            with self.tracer.span(name=trace_name) as span:
                 return self._execute_func_with_counter(False, *args, **kwargs)
         else:
             return self._execute_func_with_counter(False, *args, **kwargs)
 
     def wrap_async_endpoint(self, trace_name=None, *args, **kwargs):
-        if (trace_name):
-            with tracer.span(name=trace_name) as span:
+        if (self.tracer):
+            if (not trace_name):
+                api_path = kwargs['api_path']
+                trace_name = api_path
+
+            with self.tracer.span(name=trace_name) as span:
                 self._create_and_execute_thread(*args, **kwargs)
         else:
             self._create_and_execute_thread(*args, **kwargs)

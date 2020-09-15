@@ -1,6 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
-library(httr)
+library(crul)
 library(jsonlite)
 library(urltools)
 
@@ -25,15 +25,15 @@ InternalUpdateTaskStatus<-function(taskId, status, backendStatus){
   colnames(jdf) <- c("TaskId", "Timestamp", "Status", "BackendStatus", "Endpoint", "PublishToGrid")
 
   update_uri <- Sys.getenv('CACHE_CONNECTOR_UPSERT_URI')
+  caller <- Async$new(urls = c(update_uri))
+  (r <- caller$post(body = toJSON(jdf), headers=list("Content-Type"="application/json")))
 
-  r = POST(update_uri, body=toJSON(jdf))
-
-  if (status_code(r) != 200) {
-    print(paste("Status from task upsert: ", status_code(r)))
+  if (r[[1]]$status_code != 200) {
+    print(paste("Status from task upsert: ", r[[1]]$status_code))
     return(paste0('{"TaskId": "', taskId, '", "Status": "unable to update"}'))
   }
 
-  res <- content(r, "text")
+  res <- r[[1]]$parse("UTF-8")
   return(res)
 }
 
@@ -58,13 +58,14 @@ AddPipelineTask<-function(taskId, organization_moniker, version, api_name, body)
 
   update_uri <- paste0(Sys.getenv('CACHE_CONNECTOR_UPSERT_URI'), "&taskId=", taskId)
 
-  r = POST(update_uri, body=toJSON(jdf))
+  caller <- Async$new(urls = c(update_uri))
+  (r <- caller$post(body = toJSON(jdf), headers=list("Content-Type"="application/json")))
 
-  if (status_code(r) != 200) {
+  if (r[[1]]$status_code != 200) {
     return(paste0('{"TaskId": "', taskId, '", "Status": "not found"}'))
   }
 
-  res <- content(r, "text")
+  res <- r[[1]]$parse("UTF-8")
   print(paste("AddPipelineTask result: ", res))
   return(res)
 }
@@ -78,6 +79,7 @@ AddTask<-function(request){
     return('{"TaskId": "-1", "Status": "error"}')
   }
   else {
+    print(paste("Adding task for ", request$HTTP_TASKID))
     res <- GetTaskStatus(request$HTTP_TASKID)
     print(paste("AddTask result: ", res))
     return(res)
@@ -100,16 +102,18 @@ FailTask<-function(taskId, status){
 #* @param taskId The id of the task
 #* @get /task/<taskId>
 GetTaskStatus<-function(taskId){
+  print(paste("taskid:", taskId))
   uri <- paste0(Sys.getenv('CACHE_CONNECTOR_GET_URI'), "&taskId=", taskId)
-  r <- RETRY("GET", uri, times=5)
+  caller <- Async$new(urls = c(uri))
+  (r <- caller$get())
+  print(paste(r[[1]]$status_code))
+  cnt <- r[[1]]$parse("UTF-8")
 
-  if (status_code(r) != 200) {
-    print(paste0("GetTaskStatus result:", "Task (", taskId, ") error: ", status_code(r), ": ", content(r, as=text)))
+  if (r[[1]]$status_code != 200) {
+    print(paste0("GetTaskStatus result:", "Task (", taskId, ") error: ", r[[1]]$status_code, ": ", cnt))
     return('{"TaskId": "-1", "Status": "error"}')
   }
   else {
-    cnt <- content(r, "text")
-    print(paste("GetTaskStatus result: ", cnt))
     res <- fromJSON(cnt)
     return(res)
   }

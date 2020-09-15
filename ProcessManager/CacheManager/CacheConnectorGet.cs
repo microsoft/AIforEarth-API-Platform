@@ -13,6 +13,7 @@
     using System;
     using ProcessManager.Libraries;
     using ProcessManager.Classes;
+    using System.Threading.Tasks;
 
     public static class CacheConnectorGet
     {
@@ -23,7 +24,7 @@
         private static string URL = "taskmanagement";
 
         [FunctionName("CacheConnectorGet")]
-        public static IActionResult Run([HttpTrigger(AuthorizationLevel.Function, "get", Route = null)]HttpRequest req, ILogger logger)
+        public static async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "get", Route = null)]HttpRequest req, ILogger logger)
         {
             IDatabase db = null;
             AppInsightsLogger appInsightsLogger = new AppInsightsLogger(logger, LOGGING_SERVICE_NAME, LOGGING_SERVICE_VERSION);
@@ -33,12 +34,10 @@
             if (apiParams != null && apiParams.Keys.Contains(UUID_KEYNAME))
             {
                 uuid = apiParams[UUID_KEYNAME];
-                appInsightsLogger.LogInformation("Getting status for taskId: " + uuid, URL, uuid);
             }
             else
             {
                 appInsightsLogger.LogWarning("Called without a taskId", URL);
-                return new BadRequestObjectResult("The taskId parameter is requried.");
             }
 
             try
@@ -54,12 +53,10 @@
             RedisValue storedStatus = RedisValue.Null;
             try
             {
-                storedStatus = db.StringGet(uuid);
+                storedStatus = await db.StringGetAsync(uuid);
 
                 if (storedStatus.HasValue)
                 {
-                    appInsightsLogger.LogInformation("Found status in cache", URL, uuid);
-
                     return new OkObjectResult(storedStatus.ToString());
                 }
                 else

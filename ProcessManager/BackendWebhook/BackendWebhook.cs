@@ -28,7 +28,7 @@
 
         [FunctionName("BackendWebhook")]
 
-        public static IActionResult Run([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)]HttpRequest req, ILogger logger)
+        public static async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)]HttpRequest req, ILogger logger)
         {
             AppInsightsLogger appInsightsLogger = new AppInsightsLogger(logger, LOGGING_SERVICE_NAME, LOGGING_SERVICE_VERSION);
 
@@ -55,38 +55,34 @@
                 }
                 else
                 {
-                    appInsightsLogger.LogInformation($"Backend webhook data: id: {eventGridEvent.Id}, eventType: {eventGridEvent.EventType}, subject: {eventGridEvent.Subject}, time: {eventGridEvent.EventTime}", eventGridEvent.Subject, eventGridEvent.Id);
-
                     var backendUri = new Uri(eventGridEvent.Subject);
 
-                    var client = new HttpClient(new RetryHandler(new HttpClientHandler()));
+                    var client = new HttpClient();
                     var stringContent = new StringContent(eventGridEvent.Data.ToString(), Encoding.UTF8, "application/json");
 
                     try
                     {
                         appInsightsLogger.LogInformation($"Sending request to {backendUri} for taskId {eventGridEvent.Id}.", eventGridEvent.Subject, eventGridEvent.Id);
                         client.DefaultRequestHeaders.Add("taskId", eventGridEvent.Id);
-                        var res = client.PostAsync(backendUri, stringContent).GetAwaiter().GetResult();
+                        var res = await client.PostAsync(backendUri, stringContent);
 
                         if (res.StatusCode == (System.Net.HttpStatusCode)429) // Special return value indicating that the service is busy.  Let event grid handle the retries.
                         {
                             appInsightsLogger.LogInformation("Backend service is busy. Event grid will retry with backoff.", eventGridEvent.Subject, eventGridEvent.Id);
-                            return new StatusCodeResult(429);
                         }
                         else if (!res.IsSuccessStatusCode)
                         {
                             appInsightsLogger.LogWarning($"Unable to send request to backend. Status: {res.StatusCode.ToString()}, Reason: {res.ReasonPhrase}", eventGridEvent.Subject, eventGridEvent.Id);
-                            return new StatusCodeResult(500);
                         }
+
+                        appInsightsLogger.LogInformation("Request has successfully been pushed to the backend.", eventGridEvent.Subject, eventGridEvent.Id);
+                        return new StatusCodeResult((int)(res.StatusCode));
                     }
                     catch (Exception ex)
                     {
                         appInsightsLogger.LogError(ex, eventGridEvent.Subject, eventGridEvent.Id);
                         return new StatusCodeResult(500);
                     }
-
-                    appInsightsLogger.LogInformation("Request has successfully been pushed to the backend.", eventGridEvent.Subject, eventGridEvent.Id);
-                    return new OkResult();
                 }
             }
             
@@ -101,28 +97,5 @@
         public RetryHandler(HttpMessageHandler innerHandler)
             : base(innerHandler)
         { }
-
-        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        {
-            HttpResponseMessage response = null;
-            int waitMs = 2000;
-            for (int i = 0; i < MaxRetries; i++)
-            {
-                response = await base.SendAsync(request, cancellationToken);
-                if (response.StatusCode == (System.Net.HttpStatusCode)429) // Special return value indicating that the service is busy.  Let event grid handle the retries.
-                {
-                    return response;
-                }
-                else if (response.IsSuccessStatusCode)
-                {
-                    return response;
-                }
-                
-                await Task.Delay(waitMs);
-                waitMs += 1000;
-            }
-
-            return response;
-        }
     }
 }

@@ -211,12 +211,71 @@
             return new OkObjectResult(serializedTask);
         }
 
+        /// <summary>
+        /// Publishes the event to be processed.
+        /// Depending on configuration sends to Event Grid or Service Bus
+        /// </summary>
+        /// <returns></returns>
         private static async Task<bool> PublishEvent(APITask task, string taskBody, AppInsightsLogger appInsightsLogger)
+        {
+            bool sendToEventGrid = false;
+            if (sendToEventGrid)
+	        {
+                appInsightsLogger.LogInformation("Calling PublishEventGridEvent", task.Endpoint, task.TaskId);
+                await PublishEventGridEvent(task, taskBody, appInsightsLogger);
+	        }
+            else
+	        {
+                appInsightsLogger.LogInformation("Calling PublishServiceBusQueueEvent", task.Endpoint, task.TaskId);
+                await PublishServiceBusQueueEvent(task, taskBody, appInsightsLogger);
+	        }
+        }
+
+        /// <summary>
+        /// Publishes the event to Event Grid
+        /// </summary>
+        /// <returns></returns>
+        private static async Task<bool> PublishEventGridEvent(APITask task, string taskBody, AppInsightsLogger appInsightsLogger)
         {
             string event_grid_topic_uri = Environment.GetEnvironmentVariable(EVENT_GRID_TOPIC_URI_VARIABLE_NAME, EnvironmentVariableTarget.Process);
             string event_grid_key = Environment.GetEnvironmentVariable(EVENT_GRID_KEY_VARIABLE_NAME, EnvironmentVariableTarget.Process);
 
             var ev = new EventGridEvent()
+            {
+                Id = task.TaskId,
+                EventType = "task",
+                Data = taskBody,
+                EventTime = DateTime.Parse(task.Timestamp),
+                Subject = task.Endpoint,
+                DataVersion = "1.0"
+            };
+
+            string topicHostname = new Uri(event_grid_topic_uri).Host;
+            TopicCredentials topicCredentials = new TopicCredentials(event_grid_key);
+            EventGridClient client = new EventGridClient(topicCredentials);
+
+            try
+            {
+                await client.PublishEventsAsync(topicHostname, new List<EventGridEvent>() { ev });
+            }
+            catch (Exception ex)
+            {
+                appInsightsLogger.LogError(ex, task.Endpoint, task.TaskId);
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Publishes the event to Service Bus
+        /// </summary>
+        /// <returns></returns>
+        private static async Task<bool> PublishServiceBusQueueEvent(APITask task, string taskBody, AppInsightsLogger appInsightsLogger)
+        {
+            string event_grid_topic_uri = Environment.GetEnvironmentVariable(EVENT_GRID_TOPIC_URI_VARIABLE_NAME, EnvironmentVariableTarget.Process);
+            string event_grid_key = Environment.GetEnvironmentVariable(EVENT_GRID_KEY_VARIABLE_NAME, EnvironmentVariableTarget.Process);
+
             {
                 Id = task.TaskId,
                 EventType = "task",

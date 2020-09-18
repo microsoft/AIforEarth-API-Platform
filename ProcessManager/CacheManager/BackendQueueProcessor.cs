@@ -14,6 +14,8 @@
     using ProcessManager.Libraries;
     using ProcessManager.Classes;
     using System.Threading.Tasks;
+    using Microsoft.Azure.ServiceBus;
+
 
     public static class BackendQueueProcessor
     {
@@ -24,45 +26,51 @@
         private static string URL = "taskmanagement";
 
         [FunctionName("BackendQueueProcessor")]
-        public static async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)]HttpRequest req, ILogger logger)
+        public static async Task<IActionResult> Run([ServiceBusTrigger("tasksapiqueue", Connection = "SERVICE_BUS_CONNECTION_STRING")] 
+            string myQueueItem,
+            Int32 deliveryCount,
+            DateTime enqueuedTimeUtc,
+            string messageId, ILogger logger)
         {
-            var timestamp = DateTime.UtcNow;
-            log.LogTrace($@"[{message.UserProperties[@"TestRunId"]}]: Message received at {timestamp}: {JObject.FromObject(message)}");
+            logger.LogTrace("BackendQueueProcessor was called ");
+            return new OkResult();
+            // var timestamp = DateTime.UtcNow;
+            // log.LogTrace($@"[{message.UserProperties[@"TestRunId"]}]: Message received at {timestamp}: {JObject.FromObject(message)}");
 
-            AppInsightsLogger appInsightsLogger = new AppInsightsLogger(logger, LOGGING_SERVICE_NAME, LOGGING_SERVICE_VERSION);
+            // AppInsightsLogger appInsightsLogger = new AppInsightsLogger(logger, LOGGING_SERVICE_NAME, LOGGING_SERVICE_VERSION);
 
-            var enqueuedTime = message.ScheduledEnqueueTimeUtc;
-            var elapsedTimeMs = (timestamp - enqueuedTime).TotalMilliseconds;
+            // var enqueuedTime = message.ScheduledEnqueueTimeUtc;
+            // var elapsedTimeMs = (timestamp - enqueuedTime).TotalMilliseconds;
 
-            var taskId = message.UserProperties["TaskId"];
-            var backendUri = message.UserProperties["Uri"];
-            var body = message.UserProperties["Body"];
+            // var taskId = message.UserProperties["TaskId"];
+            // var backendUri = message.UserProperties["Uri"];
+            // var body = message.UserProperties["Body"];
 
-            var client = new HttpClient();
+            // var client = new HttpClient();
 
-            try
-            {
-                appInsightsLogger.LogInformation($"Sending request to {backendUri} for taskId {taskId}.", backendUri, taskId);
-                client.DefaultRequestHeaders.Add("taskId", taskId);
+            // try
+            // {
+            //     appInsightsLogger.LogInformation($"Sending request to {backendUri} for taskId {taskId}.", backendUri, taskId);
+            //     client.DefaultRequestHeaders.Add("taskId", taskId);
 
-                var res = await client.PostAsync(new Uri(backendUri), body);
+            //     var res = await client.PostAsync(new Uri(backendUri), body);
 
-                if (res.StatusCode == (System.Net.HttpStatusCode)429) // Special return value indicating that the service is busy.  Let event grid handle the retries.
-                {
-                    appInsightsLogger.LogInformation("Backend service is busy. Will try again.", backendUri, taskId);
-                    throw new ApplicationException("Backend service is busy. Will try again.");
-                }
-                else if (!res.IsSuccessStatusCode)
-                {
-                    appInsightsLogger.LogWarning($"Unable to send request to backend. Status: {res.StatusCode.ToString()}, Reason: {res.ReasonPhrase}", backendUri, taskId);
-                }
+            //     if (res.StatusCode == (System.Net.HttpStatusCode)429) // Special return value indicating that the service is busy.  Let event grid handle the retries.
+            //     {
+            //         appInsightsLogger.LogInformation("Backend service is busy. Will try again.", backendUri, taskId);
+            //         throw new ApplicationException("Backend service is busy. Will try again.");
+            //     }
+            //     else if (!res.IsSuccessStatusCode)
+            //     {
+            //         appInsightsLogger.LogWarning($"Unable to send request to backend. Status: {res.StatusCode.ToString()}, Reason: {res.ReasonPhrase}", backendUri, taskId);
+            //     }
 
-                appInsightsLogger.LogInformation("Request has successfully been pushed to the backend.", backendUri, taskId);
-            }
-            catch (Exception ex)
-            {
-                appInsightsLogger.LogError(ex, backendUri, taskId);
-            }
+            //     appInsightsLogger.LogInformation("Request has successfully been pushed to the backend.", backendUri, taskId);
+            // }
+            // catch (Exception ex)
+            // {
+            //     appInsightsLogger.LogError(ex, backendUri, taskId);
+            // }
         }
     }
 }

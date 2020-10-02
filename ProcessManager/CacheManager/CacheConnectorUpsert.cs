@@ -2,7 +2,7 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
- namespace ProcessManager
+namespace ProcessManager
 {
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
@@ -20,7 +20,8 @@
     using ProcessManager.Libraries;
     using ProcessManager.Classes;
     using System.Diagnostics;
-
+    using Microsoft.Azure.ServiceBus;
+    using System.Text;
     public static class CacheConnectorUpsert
     {
         private const string LOGGING_SERVICE_NAME = "CacheConnectorUpsert";
@@ -28,7 +29,7 @@
 
         private const string EVENT_GRID_TOPIC_URI_VARIABLE_NAME = "EVENT_GRID_TOPIC_URI";
         private const string EVENT_GRID_KEY_VARIABLE_NAME = "EVENT_GRID_KEY";
-
+        private const string SERVICE_BUS_CONNECTION_STRING_VARIABLE_NAME = "SERVICE_BUS_CONNECTION_STRING";
         private const string BACKEND_STATUS_CREATED = "created";
         private const string BACKEND_STATUS_COMPLETED = "completed";
         private const string BACKEND_STATUS_RUNNING = "running";
@@ -37,7 +38,7 @@
         private const string GRID_PUBLISH_RECORD_KEY = "ORIG";
 
         [FunctionName("CacheConnectorUpsert")]
-        public static async Task<IActionResult> TaskRun([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)]HttpRequest req, ILogger logger)
+        public static async Task<IActionResult> TaskRun([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req, ILogger logger)
         {
             IDatabase db = null;
             AppInsightsLogger appInsightsLogger = new AppInsightsLogger(logger, LOGGING_SERVICE_NAME, LOGGING_SERVICE_VERSION);
@@ -112,7 +113,7 @@
                 return new StatusCodeResult(500);
             }
 
-            string serializedTask = string.Empty; 
+            string serializedTask = string.Empty;
             try
             {
                 var taskBody = task.Body;
@@ -130,7 +131,7 @@
                 int timestamp = (int)ts.TotalSeconds;
 
                 upsertTransaction.SortedSetAddAsync(string.Format("{0}_{1}", task.EndpointPath, task.BackendStatus), new SortedSetEntry[] { new SortedSetEntry(task.TaskId, timestamp) });
-                
+
                 if (task.BackendStatus.Equals(BACKEND_STATUS_RUNNING))
                 {
                     upsertTransaction.SortedSetRemoveAsync(string.Format("{0}_{1}", task.EndpointPath, BACKEND_STATUS_CREATED), task.TaskId);
@@ -207,15 +208,31 @@
                 appInsightsLogger.LogRedisUpsert("Redis upsert failed.", redisOperation, task.Timestamp, serializedTask, task.Endpoint, task.TaskId);
                 return new StatusCodeResult(500);
             }
-            
+
             return new OkObjectResult(serializedTask);
         }
 
+        /// <summary>
+        /// Publishes the event to be processed.
+        /// Depending on configuration sends to Event Grid or Service Bus
+        /// </summary>
+        /// <returns></returns>
         private static async Task<bool> PublishEvent(APITask task, string taskBody, AppInsightsLogger appInsightsLogger)
         {
-            string event_grid_topic_uri = Environment.GetEnvironmentVariable(EVENT_GRID_TOPIC_URI_VARIABLE_NAME, EnvironmentVariableTarget.Process);
-            string event_grid_key = Environment.GetEnvironmentVariable(EVENT_GRID_KEY_VARIABLE_NAME, EnvironmentVariableTarget.Process);
+            var eventGridTopicUri = Environment.GetEnvironmentVariable(EVENT_GRID_TOPIC_URI_VARIABLE_NAME, EnvironmentVariableTarget.Process);
+            var eventGridKey = Environment.GetEnvironmentVariable(EVENT_GRID_KEY_VARIABLE_NAME, EnvironmentVariableTarget.Process);
+            if (string.IsNullOrEmpty(eventGridTopicUri) || string.IsNullOrEmpty(eventGridKey))
+            {
+                return await PublishServiceBusQueueEvent(task, taskBody, appInsightsLogger);
+            }
+            else
+            {
+                return await PublishEventGridEvent(task, taskBody, eventGridTopicUri, eventGridKey, appInsightsLogger);
+            }
+        }
 
+        private static async Task<bool> PublishEventGridEvent(APITask task, string taskBody, string eventGridTopicUri, string eventGridKey, AppInsightsLogger appInsightsLogger)
+        {
             var ev = new EventGridEvent()
             {
                 Id = task.TaskId,
@@ -226,13 +243,55 @@
                 DataVersion = "1.0"
             };
 
-            string topicHostname = new Uri(event_grid_topic_uri).Host;
-            TopicCredentials topicCredentials = new TopicCredentials(event_grid_key);
+            string topicHostname = new Uri(eventGridTopicUri).Host;
+            TopicCredentials topicCredentials = new TopicCredentials(eventGridKey);
             EventGridClient client = new EventGridClient(topicCredentials);
 
             try
             {
                 await client.PublishEventsAsync(topicHostname, new List<EventGridEvent>() { ev });
+            }
+            catch (Exception ex)
+            {
+                appInsightsLogger.LogError(ex, task.Endpoint, task.TaskId);
+                return false;
+            }
+
+            return true;
+        }
+
+        private static async Task<bool> PublishServiceBusQueueEvent(APITask task, string taskBody, AppInsightsLogger appInsightsLogger)
+        {
+            string serviceBusConnectionString = Environment.GetEnvironmentVariable(SERVICE_BUS_CONNECTION_STRING_VARIABLE_NAME, EnvironmentVariableTarget.Process);
+            
+            // A queue must be created for each endpoint, ex:
+            // The queue name for http://52.224.89.22/v1/paws/consolidate should be http52.224.89.22v1pawsconsolidate
+            var queueName = task.Endpoint.Replace(".", string.Empty);
+            queueName = queueName.Replace("/", string.Empty);
+            queueName = queueName.Replace(":", string.Empty);
+            
+
+            var messageProperties = new Dictionary<string,object>
+            {
+                { "TaskId", task.TaskId },
+                { "Uri", task.Endpoint }
+            };
+
+            IQueueClient queueClient = new QueueClient(serviceBusConnectionString, queueName);
+
+            try
+            {
+                Message message = new Message(Encoding.UTF8.GetBytes(taskBody));
+                message.UserProperties["TaskId"] = task.TaskId;
+                message.UserProperties["Uri"] = task.Endpoint;
+
+                // Write the body of the message to the console.
+                Console.WriteLine($"Sending taskId {task.TaskId} to queue {queueName}");
+
+                // Send the message to the queue.
+                await queueClient.SendAsync(message);
+                await queueClient.CloseAsync();
+                appInsightsLogger.LogInformation($"Sent task {task.TaskId} to queue {queueName}.", task.Endpoint, task.TaskId);
             }
             catch (Exception ex)
             {

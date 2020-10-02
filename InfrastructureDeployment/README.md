@@ -17,6 +17,7 @@ There are three types of files required for deployment:
 3. [Infrastructure Management](#Infrastructure-Management)
 
 ## Installation Process
+Note: Requires Bash 4+
 To quickly get up and running, follow these steps.
 
 1. Edit the [setup_env.sh](setup_env.sh) file.  This is where you configure the deployment.

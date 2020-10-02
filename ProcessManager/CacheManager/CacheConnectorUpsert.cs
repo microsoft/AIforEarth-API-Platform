@@ -29,14 +29,7 @@ namespace ProcessManager
 
         private const string EVENT_GRID_TOPIC_URI_VARIABLE_NAME = "EVENT_GRID_TOPIC_URI";
         private const string EVENT_GRID_KEY_VARIABLE_NAME = "EVENT_GRID_KEY";
-
-        /// Switch variable to determine to which queue service we should send the task to be processed
-        /// Values are: EVENT_GRID or SERVICE_BUS
-        private const string DESTINATION_QUEUE_SERVICE_VARIABLE_NAME = "DESTINATION_QUEUE_SERVICE";
-        private const string EVENT_GRID_STRING = "SERVICE_BUS";
         private const string SERVICE_BUS_CONNECTION_STRING_VARIABLE_NAME = "SERVICE_BUS_CONNECTION_STRING";
-        private const string SERVICE_BUS_QUEUE_VARIABLE_NAME = "SERVICE_BUS_QUEUE";
-
         private const string BACKEND_STATUS_CREATED = "created";
         private const string BACKEND_STATUS_COMPLETED = "completed";
         private const string BACKEND_STATUS_RUNNING = "running";
@@ -226,30 +219,20 @@ namespace ProcessManager
         /// <returns></returns>
         private static async Task<bool> PublishEvent(APITask task, string taskBody, AppInsightsLogger appInsightsLogger)
         {
-            bool sendToEventGrid =  Environment.GetEnvironmentVariable(DESTINATION_QUEUE_SERVICE_VARIABLE_NAME, EnvironmentVariableTarget.Process).Equals(EVENT_GRID_STRING, StringComparison.InvariantCultureIgnoreCase);
-            appInsightsLogger.LogInformation($"DESTINATION_QUEUE_SERVICE_VARIABLE_NAME is set to: {DESTINATION_QUEUE_SERVICE_VARIABLE_NAME}", task.Endpoint, task.TaskId);
-            
-            if (sendToEventGrid)
+            var eventGridTopicUri = Environment.GetEnvironmentVariable(EVENT_GRID_TOPIC_URI_VARIABLE_NAME, EnvironmentVariableTarget.Process);
+            var eventGridKey = Environment.GetEnvironmentVariable(EVENT_GRID_KEY_VARIABLE_NAME, EnvironmentVariableTarget.Process);
+            if (string.IsNullOrEmpty(eventGridTopicUri) || string.IsNullOrEmpty(eventGridKey))
             {
-                appInsightsLogger.LogInformation("Calling PublishEventGridEvent", task.Endpoint, task.TaskId);
-                return await PublishEventGridEvent(task, taskBody, appInsightsLogger);
+                return await PublishServiceBusQueueEvent(task, taskBody, appInsightsLogger);
             }
             else
             {
-                appInsightsLogger.LogInformation("Calling PublishServiceBusQueueEvent", task.Endpoint, task.TaskId);
-                return await PublishServiceBusQueueEvent(task, taskBody, appInsightsLogger);
+                return await PublishEventGridEvent(task, taskBody, eventGridTopicUri, eventGridKey, appInsightsLogger);
             }
         }
 
-        /// <summary>
-        /// Publishes the event to Event Grid
-        /// </summary>
-        /// <returns></returns>
-        private static async Task<bool> PublishEventGridEvent(APITask task, string taskBody, AppInsightsLogger appInsightsLogger)
+        private static async Task<bool> PublishEventGridEvent(APITask task, string taskBody, string eventGridTopicUri, string eventGridKey, AppInsightsLogger appInsightsLogger)
         {
-            string event_grid_topic_uri = Environment.GetEnvironmentVariable(EVENT_GRID_TOPIC_URI_VARIABLE_NAME, EnvironmentVariableTarget.Process);
-            string event_grid_key = Environment.GetEnvironmentVariable(EVENT_GRID_KEY_VARIABLE_NAME, EnvironmentVariableTarget.Process);
-
             var ev = new EventGridEvent()
             {
                 Id = task.TaskId,
@@ -260,8 +243,8 @@ namespace ProcessManager
                 DataVersion = "1.0"
             };
 
-            string topicHostname = new Uri(event_grid_topic_uri).Host;
-            TopicCredentials topicCredentials = new TopicCredentials(event_grid_key);
+            string topicHostname = new Uri(eventGridTopicUri).Host;
+            TopicCredentials topicCredentials = new TopicCredentials(eventGridKey);
             EventGridClient client = new EventGridClient(topicCredentials);
 
             try
@@ -277,29 +260,38 @@ namespace ProcessManager
             return true;
         }
 
-        /// <summary>
-        /// Publishes the event to Service Bus
-        /// </summary>
-        /// <returns></returns>
         private static async Task<bool> PublishServiceBusQueueEvent(APITask task, string taskBody, AppInsightsLogger appInsightsLogger)
         {
-            string service_bus_connection_string = Environment.GetEnvironmentVariable(SERVICE_BUS_CONNECTION_STRING_VARIABLE_NAME, EnvironmentVariableTarget.Process);
-            string queue_name = Environment.GetEnvironmentVariable(SERVICE_BUS_QUEUE_VARIABLE_NAME, EnvironmentVariableTarget.Process);
+            string serviceBusConnectionString = Environment.GetEnvironmentVariable(SERVICE_BUS_CONNECTION_STRING_VARIABLE_NAME, EnvironmentVariableTarget.Process);
             
-            IQueueClient queueClient = new QueueClient(service_bus_connection_string, queue_name);
+            // A queue must be created for each endpoint, ex:
+            // The queue name for http://52.224.89.22/v1/paws/consolidate should be http52.224.89.22v1pawsconsolidate
+            var queueName = task.Endpoint.Replace(".", string.Empty);
+            queueName = queueName.Replace("/", string.Empty);
+            queueName = queueName.Replace(":", string.Empty);
+            
+
+            var messageProperties = new Dictionary<string,object>
+            {
+                { "TaskId", task.TaskId },
+                { "Uri", task.Endpoint }
+            };
+
+            IQueueClient queueClient = new QueueClient(serviceBusConnectionString, queueName);
 
             try
             {
-                string messageBody = task.TaskId;
-                var message = new Message(Encoding.UTF8.GetBytes(messageBody));
+                Message message = new Message(Encoding.UTF8.GetBytes(taskBody));
+                message.UserProperties["TaskId"] = task.TaskId;
+                message.UserProperties["Uri"] = task.Endpoint;
 
                 // Write the body of the message to the console.
-                Console.WriteLine($"Sending message: {messageBody}");
+                Console.WriteLine($"Sending taskId {task.TaskId} to queue {queueName}");
 
                 // Send the message to the queue.
                 await queueClient.SendAsync(message);
-
                 await queueClient.CloseAsync();
+                appInsightsLogger.LogInformation($"Sent task {task.TaskId} to queue {queueName}.", task.Endpoint, task.TaskId);
             }
             catch (Exception ex)
             {

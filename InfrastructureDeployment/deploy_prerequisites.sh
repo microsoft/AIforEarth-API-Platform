@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
 
 source ./InfrastructureDeployment/setup_env.sh
 
@@ -10,7 +12,7 @@ then
     exit $?
 fi
 
-# Create Resource Group
+# Create infrastructure resource group
 az group create --name $INFRASTRUCTURE_RESOURCE_GROUP_NAME --location $INFRASTRUCTURE_LOCATION
 
 if [ $? -ne 0 ]
@@ -18,6 +20,23 @@ then
     echo "Unable to create $INFRASTRUCTURE_RESOURCE_GROUP_NAME resource group."
     echo "deploy_prerequisites.sh failed"
     exit $?
+fi
+
+# Create an Azure Container Registry
+if "$CREATE_CONTAINER_REGISTRY" = "true"
+then
+    echo "Creating container registry."
+    az group create --name $CONTAINER_REGISTRY_RESOURCE_GROUP --location $INFRASTRUCTURE_LOCATION
+    az acr create --resource-group $CONTAINER_REGISTRY_RESOURCE_GROUP --name $CONTAINER_REGISTRY_NAME --sku Basic
+
+    if [ $? -ne 0 ]
+    then
+        echo "Unable to create $CONTAINER_REGISTRY_NAME Azure Container Registry."
+        echo "deploy_prerequisites.sh failed"
+        exit $?
+    fi
+else
+    echo "Skipping container registry creation."
 fi
 
 # Create the Application Insights resource
@@ -38,22 +57,6 @@ echo "APPINSIGHTS_INSTRUMENTATIONKEY: $inst_key"
 echo "-----------------------------------------------------------"
 read -p "Press enter to continue"
 
-# Create an Azure Container Registry
-if "$CREATE_CONTAINER_REGISTRY" = "true"
-then
-    echo "Creating container registry."
-    az group create --name $CONTAINER_REGISTRY_RESOURCE_GROUP --location $INFRASTRUCTURE_LOCATION
-    az acr create --resource-group $CONTAINER_REGISTRY_RESOURCE_GROUP --name $CONTAINER_REGISTRY_NAME --sku Basic
-
-    if [ $? -ne 0 ]
-    then
-        echo "Unable to create $CONTAINER_REGISTRY_NAME Azure Container Registry."
-        echo "deploy_prerequisites.sh failed"
-        exit $?
-    fi
-else
-    echo "Skipping container registry creation."
-fi
 
 az storage account create -n $FUNCTION_STORAGE_NAME -g $INFRASTRUCTURE_RESOURCE_GROUP_NAME -l $INFRASTRUCTURE_LOCATION --sku Standard_LRS
 

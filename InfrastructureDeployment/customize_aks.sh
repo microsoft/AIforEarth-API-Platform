@@ -1,16 +1,18 @@
 #!/bin/bash
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
 
 source ./InfrastructureDeployment/setup_env.sh
 
-# Create Kubernetes Dashboard Account
-echo "Applying dashboard admin account."
-kubectl apply -f ./Cluster/policy/dashboard-admin.yaml
+az account set --subscription $AZURE_SUBSCRIPTION_ID
 if [ $? -ne 0 ]
 then
-    echo "Could not apply the dashboard policy for the $AKS_CLUSTER_NAME AKS cluster."
-    echo "customize_aks.sh failed"
+    echo "Could not set subscription $AZURE_SUBSCRIPTION_ID."
+    echo "deploy_aks.sh failed"
     exit $?
 fi
+
+az aks get-credentials --resource-group $AKS_RESOURCE_GROUP_NAME --name $AKS_CLUSTER_NAME
 
 if "$INSTALL_ISTIO" = "true"
 then
@@ -29,7 +31,7 @@ then
 
     chmod +x ./istio-$ISTIO_VERSION/bin/istioctl
 
-    ./istio-$ISTIO_VERSION/bin/istioctl manifest apply --set values.global.mtls.auto=true --set values.global.controlPlaneSecurityEnabled=true --logtostderr
+    ./istio-$ISTIO_VERSION/bin/istioctl manifest apply --set values.global.controlPlaneSecurityEnabled=true
     iteration=1
     while [ $? -ne 0 ]
     do
@@ -44,7 +46,7 @@ then
         iteration=$(($iteration+1))
         echo "Try $iteration of 10"
         sleep 10
-        ./istio-$ISTIO_VERSION/bin/istioctl manifest apply --set values.global.mtls.enabled=true --set values.global.controlPlaneSecurityEnabled=true --logtostderr
+        ./istio-$ISTIO_VERSION/bin/istioctl manifest apply --set values.global.controlPlaneSecurityEnabled=true
     done
 
     # Create a namespace for the Istio services.
@@ -83,35 +85,9 @@ then
         iteration=$(($iteration+1))
         echo "Try $iteration of 10"
         sleep 10
-        ./istio-$ISTIO_VERSION/bin/istioctl manifest apply --set values.global.mtls.enabled=true --set values.global.controlPlaneSecurityEnabled=true --logtostderr
+        ./istio-$ISTIO_VERSION/bin/istioctl manifest apply --set values.global.controlPlaneSecurityEnabled=true
         kubectl apply -f ./Cluster/networking/routing_base.yml
     done
 fi
 
-# Create ACR role.  This lets AKS access the container registry that holds the container images.
-echo "Creating ACR role."
-client_id=$(az aks show --resource-group $AKS_RESOURCE_GROUP_NAME --name $AKS_CLUSTER_NAME --query "servicePrincipalProfile.clientId" --output tsv)
-if [ $? -ne 0 ]
-then
-    echo "Could not get the client id for $AKS_CLUSTER_NAME."
-    echo "customize_aks.sh failed"
-    exit $?
-fi
-
-# Get the ACR registry resource id
-acr_id=$(az acr show --name $CONTAINER_REGISTRY_NAME --resource-group $CONTAINER_REGISTRY_RESOURCE_GROUP --query "id" --output tsv)
-if [ $? -ne 0 ]
-then
-    echo "Could not get the client id for $AKS_CLUSTER_NAME."
-    echo "customize_aks.sh failed"
-    exit $?
-fi
-
-# Create role assignment
-az role assignment create --assignee $client_id --role AcrPull --scope $acr_id
-if [ $? -ne 0 ]
-then
-    echo "Could not create an ACR role in the AKS cluster."
-    echo "customize_aks.sh failed"
-    exit $?
-fi
+kubectl label namespace default istio-injection=enabled

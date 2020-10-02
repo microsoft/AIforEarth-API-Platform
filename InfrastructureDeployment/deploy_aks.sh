@@ -1,6 +1,16 @@
 #!/bin/bash
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
 
 source ./InfrastructureDeployment/setup_env.sh
+
+az account set --subscription $AZURE_SUBSCRIPTION_ID
+if [ $? -ne 0 ]
+then
+    echo "Could not set subscription $AZURE_SUBSCRIPTION_ID."
+    echo "deploy_aks.sh failed"
+    exit $?
+fi
 
 # Create Resource Group for AKS
 az group create --name $AKS_RESOURCE_GROUP_NAME --location $INFRASTRUCTURE_LOCATION
@@ -17,7 +27,7 @@ echo "Creating service principal."
 sp_data=$(az ad sp create-for-rbac --skip-assignment -n http://$AKS_CLUSTER_NAME-sp)
 if [ $? -ne 0 ]
 then
-    echo "Unable to create $AKS_CLUSTER_NAME-sp service principal for AKS."
+    echo "Unable to create service principal for AKS."
     echo "deploy_aks.sh failed"
     exit $?
 fi
@@ -42,8 +52,8 @@ do
     sp_created_len=${#sp_created}
 done
 
-# Give AKS' service principal pull rights to the container registry
-echo "Granting AKS ACR pull rights."
+# Give service principal pull rights to the container registry
+echo "Granting ACR pull rights."
 acr_id=$(az acr show --name $CONTAINER_REGISTRY_NAME --query id --output tsv)
 
 az role assignment create --assignee $appId --scope $acr_id --role AcrPull
@@ -52,27 +62,52 @@ while [ $? -ne 0 ]
 do
     if [ $iteration -ge 10 ]
     then
-        echo "Unable to grant AKS ACR pull rights."
+        echo "Unable to grant ACR pull rights."
         echo "deploy_aks.sh failed"
         exit $?
     fi
 
-    echo "Unable to grant AKS ACR pull rights. Retrying in 10 seconds."
+    echo "Unable to grant ACR pull rights. Retrying in 10 seconds."
     iteration=$(($iteration+1))
     echo "Try $iteration of 10"
     sleep 10
     az role assignment create --assignee $appId --scope $acr_id --role AcrPull
 done
 
-# The service principal can take up to 4 minutes to propagate.  Comment out the sleep, if needed.
-#echo "The service principal can take up to 4 minutes to propagate... sleeping."
-#sleep 240
+
 
 # Create the cluster.
-if [ $CLUSTER_GPU_NODE_COUNT -gt 0 ] && [ $CLUSTER_CPU_NODE_COUNT -gt 0 ]
+add_managed_identity=""
+if "$ENABLE_AKS_MANAGED_IDENTITY" = "true"
 then
-    echo "Creating AKS cluster."
-    az aks create --resource-group $AKS_RESOURCE_GROUP_NAME --name $AKS_CLUSTER_NAME --node-count $CLUSTER_CPU_NODE_COUNT --node-vm-size $CLUSTER_CPU_NODE_VM_SKU --kubernetes-version $KUBERNETES_VERSION --dns-name-prefix $DNS_NAME_PREFIX --service-principal $appId --client-secret $password --generate-ssh-keys --enable-cluster-autoscaler --min-count $CPU_SCALE_MIN_NODE_COUNT --max-count $CPU_SCALE_MAX_NODE_COUNT --enable-addons monitoring --subscription $AZURE_SUBSCRIPTION_ID
+    add_managed_identity="--enable-managed-identity"
+fi
+
+create="true"
+for pool in "${pool_order[@]}"
+do
+    sku="${node_skus[$pool]}"
+    start_count=${node_start_count[$pool]}
+    min_count=${node_min_count[$pool]}
+    max_count=${node_max_count[$pool]}
+
+    echo "Processing pool: $pool"
+
+    if "$create" = "true"
+    then
+        echo "Creating AKS cluster with base pool: $pool."        
+        az aks create --resource-group $AKS_RESOURCE_GROUP_NAME --name $AKS_CLUSTER_NAME --nodepool-name $pool --node-count $start_count --node-vm-size $sku --kubernetes-version $KUBERNETES_VERSION --dns-name-prefix $DNS_NAME_PREFIX --service-principal $appId --client-secret $password --generate-ssh-keys --enable-cluster-autoscaler --min-count $min_count --max-count $max_count --enable-addons monitoring --subscription $AZURE_SUBSCRIPTION_ID $add_managed_identity
+        create="false"
+    else
+        echo "Adding pool to cluster: $pool."
+        taints=""
+
+        if [ ${node_taints[$pool]+_} ]
+        then
+            taints="--node-taints ${node_taints[$pool]}"
+        fi
+        az aks nodepool add --resource-group $AKS_RESOURCE_GROUP_NAME --cluster-name $AKS_CLUSTER_NAME --name $pool --node-count $start_count --node-vm-size $sku --kubernetes-version $KUBERNETES_VERSION --enable-cluster-autoscaler --min-count $min_count --max-count $max_count $taints $add_managed_identity
+    fi
 
     if [ $? -ne 0 ]
     then
@@ -81,68 +116,7 @@ then
         exit $?
     fi
 
-    echo "Creating two nodepools."
-    pools=$(az aks nodepool list -g $AKS_RESOURCE_GROUP_NAME --cluster-name $AKS_CLUSTER_NAME --out table --query '[].[name]')
-
-    if [[ $pools != *"gpupool"* ]]
-    then
-        echo "Creating GPU node pool."
-        az aks nodepool add --resource-group $AKS_RESOURCE_GROUP_NAME --cluster-name $AKS_CLUSTER_NAME --name gpupool --node-count $CLUSTER_GPU_NODE_COUNT --node-vm-size $CLUSTER_GPU_NODE_VM_SKU --kubernetes-version $KUBERNETES_VERSION --enable-cluster-autoscaler --min-count $GPU_SCALE_MIN_NODE_COUNT --max-count $GPU_SCALE_MAX_NODE_COUNT --node-taints sku=gpu:NoSchedule
-
-        if [ $? -ne 0 ]
-        then
-            echo "Unable to create GPU node pool in the $AKS_CLUSTER_NAME AKS cluster."
-            echo "deploy_aks.sh failed"
-            exit $?
-        fi
-    fi
-
-    az aks wait --resource-group $AKS_RESOURCE_GROUP_NAME --name $AKS_CLUSTER_NAME --interval 15 --created --updated
- 
-    if [ $? -ne 0 ]
-    then
-        echo "Waiting for $AKS_CLUSTER_NAME AKS cluster failed."
-        echo "deploy_aks.sh failed"
-        exit $?
-    fi
-
-elif [ $CLUSTER_CPU_NODE_COUNT -gt 0 ]
-then
-        echo "Creating AKS cluster with a single CPU node pool."
-        az aks create --resource-group $AKS_RESOURCE_GROUP_NAME --name $AKS_CLUSTER_NAME --node-count $CLUSTER_CPU_NODE_COUNT --node-vm-size $CLUSTER_CPU_NODE_VM_SKU --kubernetes-version $KUBERNETES_VERSION --dns-name-prefix $DNS_NAME_PREFIX --service-principal $appId --client-secret $password --generate-ssh-keys --enable-cluster-autoscaler --min-count $CPU_SCALE_MIN_NODE_COUNT --max-count $CPU_SCALE_MAX_NODE_COUNT --enable-addons monitoring --subscription $AZURE_SUBSCRIPTION_ID
-
-        if [ $? -ne 0 ]
-        then
-            echo "Unable to create $AKS_CLUSTER_NAME AKS cluster."
-            echo "deploy_aks.sh failed"
-            exit $?
-        fi
-
-        az aks wait --resource-group $AKS_RESOURCE_GROUP_NAME --name $AKS_CLUSTER_NAME --interval 15 --created --updated
-        if [ $? -ne 0 ]
-        then
-            echo "Waiting for $AKS_CLUSTER_NAME AKS cluster failed."
-            echo "deploy_aks.sh failed"
-            exit $?
-        fi
-else
-        echo "Creating AKS cluster with a single GPU node pool."
-        az aks create --resource-group $AKS_RESOURCE_GROUP_NAME --name $AKS_CLUSTER_NAME --node-count $CLUSTER_GPU_NODE_COUNT --node-vm-size $CLUSTER_GPU_NODE_VM_SKU --kubernetes-version $KUBERNETES_VERSION --dns-name-prefix $DNS_NAME_PREFIX --service-principal $appId --client-secret $password --generate-ssh-keys --enable-cluster-autoscaler --min-count $GPU_SCALE_MIN_NODE_COUNT --max-count $GPU_SCALE_MAX_NODE_COUNT --enable-addons monitoring --subscription $AZURE_SUBSCRIPTION_ID
-        if [ $? -ne 0 ]
-        then
-            echo "Unable to create $AKS_CLUSTER_NAME AKS cluster."
-            echo "deploy_aks.sh failed"
-            exit $?
-        fi
-
-        az aks wait --resource-group $AKS_RESOURCE_GROUP_NAME --name $AKS_CLUSTER_NAME --interval 15 --created --updated
-        if [ $? -ne 0 ]
-        then
-            echo "Waiting for $AKS_CLUSTER_NAME AKS cluster failed."
-            echo "deploy_aks.sh failed"
-            exit $?
-        fi
-fi
+done
 
 # Get the cluster login credentials.  This updates your ~/.kube/config file and allows access via kubectl and Helm.
 az aks get-credentials --resource-group $AKS_RESOURCE_GROUP_NAME --name $AKS_CLUSTER_NAME
@@ -154,7 +128,7 @@ then
 fi
 
 # GPU ONLY
-if [ $CLUSTER_GPU_NODE_COUNT -gt 0 ]
+if "$INSTALL_NVIDIA_DEVICE_PLUGIN" = "true"
 then
     # Enable GPU Plugin
     echo "Applying nvidia device plugin."
@@ -165,4 +139,14 @@ then
         echo "deploy_aks.sh failed"
         exit $?
     fi
+fi
+
+# Create role to allow AKS to read logs for cluster health reporting.
+echo "Applying containerHealth-log-reader cluster role."
+kubectl apply -f ./Cluster/policy/containerHealth-log-reader.yaml
+if [ $? -ne 0 ]
+then
+    echo "Could not apply the containerHealth-log-reader cluster role for the $AKS_CLUSTER_NAME AKS cluster."
+    echo "deploy_aks.sh failed"
+    exit $?
 fi

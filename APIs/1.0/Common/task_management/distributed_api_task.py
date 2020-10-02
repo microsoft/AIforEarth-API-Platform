@@ -29,7 +29,7 @@ class DistributedApiTaskManager:
     def _UpdateTaskStatus(self, taskId, status, backendStatus):
         old_stat = self.GetTaskStatus(taskId)
         endpoint = 'http://localhost'
-        if old_stat['Status'] == "not found":
+        if not old_stat['Endpoint']:
             print("Cannot find task status. Creating")
         else:
             endpoint = old_stat['Endpoint']

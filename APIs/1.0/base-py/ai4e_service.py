@@ -52,6 +52,8 @@ class APIService():
 
         if not isinstance(self.log, AI4EAppInsights):
             self.tracer = self.log.tracer
+        else:
+            self.tracer = None
 
         self.api_task_manager = TaskManager()
         signal.signal(signal.SIGINT, self.initialize_term)

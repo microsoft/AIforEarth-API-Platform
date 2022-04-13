@@ -1,3 +1,5 @@
+## Due to new featues that have since been added to Azure Machine Learning, this repository is now deprecated.
+
 # AI for Earth Engineering and Data Science
 After developing an algorithm or machine learning model, researchers face the problem of deploying their model for others to consume, integrating it with data sources, securing its access, and keeping it current.  Due to these complexities, the vast majority of this work is  confined to the researcher’s private device, limiting the model’s application. Microsoft's AI for Earth team has built tools to democratize a researcher’s product through the use of containerized APIs that allow scientists to “drop in” their models and deploy to the cloud for world-wide consumption.  Further, AI for Earth’s API Platform is a portable, distributed serving system that provides a scalable and extensible way to integrate the model with Azure resources, which unlocks composition of discrete APIs via pipelining.
 
